@@ -1,0 +1,44 @@
+[
+  {
+    "id": "q1",
+    "name": "45 Min. Ableton (yrrpheus)",
+    "xp": 40,
+    "path": "bard"
+  },
+  {
+    "id": "q2",
+    "name": "Ethik-Stunde vorbereitet",
+    "xp": 50,
+    "path": "socratic"
+  },
+  {
+    "id": "q3",
+    "name": "20 Min. Qi Gong / Meditation",
+    "xp": 30,
+    "path": "monk"
+  },
+  {
+    "id": "q4",
+    "name": "Docker / Dify Server Wartung",
+    "xp": 40,
+    "path": "architect"
+  },
+  {
+    "id": "q5",
+    "name": "Jonglage / Flow Arts Session",
+    "xp": 35,
+    "path": "acrobat"
+  },
+  {
+    "id": "q6",
+    "name": "10 Seiten philosophischer Text gelesen",
+    "xp": 25,
+    "path": "socratic"
+  },
+  { 
+    "id": "q7", 
+    "name": "Gym / Laufen gewesen", 
+    "xp": 60, 
+    "path": "acrobat" 
+  }
+]

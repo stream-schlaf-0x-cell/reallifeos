@@ -1,0 +1,232 @@
+[
+  {
+    "id": "arc_1",
+    "path": "architect",
+    "name": "Docker Fundament",
+    "cost": 0,
+    "unlocked": true,
+    "desc": "Basis-Setup des Headless Windows PC. Laufwerk D: ist bereit.",
+    "icon": "server",
+    "req": []
+  },
+  {
+    "id": "arc_2",
+    "path": "architect",
+    "name": "Paperless OCR",
+    "cost": 100,
+    "unlocked": false,
+    "desc": "Automatischer Nextcloud-Scan-Ordner zu Paperless-ngx läuft fehlerfrei.",
+    "icon": "database",
+    "req": ["arc_1"]
+  },
+  {
+    "id": "arc_3",
+    "path": "architect",
+    "name": "Kavita Bibliothek",
+    "cost": 150,
+    "unlocked": false,
+    "desc": "Calibre Auto-Export in Kavita (Port 5000) für PDFs und EPUBs.",
+    "icon": "book",
+    "req": ["arc_1"]
+  },
+  {
+    "id": "arc_4",
+    "path": "architect",
+    "name": "Dify Mistral Pipeline",
+    "cost": 300,
+    "unlocked": false,
+    "desc": "Lokaler KI-Agent mit Parent-Child Retrieval (1500 Tokens) über 80+ PDFs.",
+    "icon": "brain",
+    "req": ["arc_2", "arc_3"]
+  },
+  {
+    "id": "arc_5",
+    "path": "architect",
+    "name": "Digitale Souveränität",
+    "cost": 800,
+    "unlocked": false,
+    "desc": "Komplette OPDS-Kopplung an Yomu via Tailscale. Das Zweite Gehirn lebt.",
+    "icon": "globe",
+    "req": ["arc_4"]
+  },
+  {
+    "id": "soc_1",
+    "path": "socratic",
+    "name": "Ethik Curriculum",
+    "cost": 0,
+    "unlocked": true,
+    "desc": "Grundlegendes Verständnis der Lehrpläne.",
+    "icon": "scroll",
+    "req": []
+  },
+  {
+    "id": "soc_2",
+    "path": "socratic",
+    "name": "Dify Unterrichtsplaner",
+    "cost": 150,
+    "unlocked": false,
+    "desc": "Nutzung des 'Sokratischen Architekten' (System Prompt) für Stundenentwürfe.",
+    "icon": "edit",
+    "req": ["soc_1"]
+  },
+  {
+    "id": "soc_3",
+    "path": "socratic",
+    "name": "Germanistik Zusatz",
+    "cost": 200,
+    "unlocked": false,
+    "desc": "Erfolgreiche Bearbeitung eines Uni-Skripts für das Zusatzfach.",
+    "icon": "pen",
+    "req": ["soc_1"]
+  },
+  {
+    "id": "soc_4",
+    "path": "socratic",
+    "name": "Kant & Konstruktivismus",
+    "cost": 400,
+    "unlocked": false,
+    "desc": "Meisterhafte Integration komplexer Philosophie in zugänglichen Unterricht.",
+    "icon": "eye",
+    "req": ["soc_2"]
+  },
+  {
+    "id": "soc_5",
+    "path": "socratic",
+    "name": "Pädagogische Exzellenz",
+    "cost": 1000,
+    "unlocked": false,
+    "desc": "Vollständige Symbiose aus KI-Assistenz und humanistischem Lehramt.",
+    "icon": "crown",
+    "req": ["soc_3", "soc_4"]
+  },
+  {
+    "id": "bar_1",
+    "path": "bard",
+    "name": "Ableton Live 12 Basis",
+    "cost": 0,
+    "unlocked": true,
+    "desc": "Das digitale Studio auf dem Windows PC ist eingerichtet.",
+    "icon": "music",
+    "req": []
+  },
+  {
+    "id": "bar_2",
+    "path": "bard",
+    "name": "Navidrome Streaming",
+    "cost": 120,
+    "unlocked": false,
+    "desc": "Subsonic API an Amperfy. Eigene Tracks weltweit verfügbar.",
+    "icon": "radio",
+    "req": ["bar_1"]
+  },
+  {
+    "id": "bar_3",
+    "path": "bard",
+    "name": "yolomeus: LoFi Groove",
+    "cost": 250,
+    "unlocked": false,
+    "desc": "Meisterschaft über Ableton Drum Rack, Glue Compressor & Vinyl Distortion.",
+    "icon": "headphones",
+    "req": ["bar_1"]
+  },
+  {
+    "id": "bar_4",
+    "path": "bard",
+    "name": "yrrpheus: Ambient Space",
+    "cost": 250,
+    "unlocked": false,
+    "desc": "Meisterschaft über UADx Lexicon 224, Valhalla Supermassive & DeepMind 6.",
+    "icon": "cloud",
+    "req": ["bar_1"]
+  },
+  {
+    "id": "bar_5",
+    "path": "bard",
+    "name": "UADx Mastering",
+    "cost": 500,
+    "unlocked": false,
+    "desc": "Fairchild 670, Pultec EQP-1A und Ampex ATR-102 auf dem Master-Bus.",
+    "icon": "sliders",
+    "req": ["bar_3", "bar_4"]
+  },
+  {
+    "id": "mon_1",
+    "path": "monk",
+    "name": "Zazen Basis",
+    "cost": 0,
+    "unlocked": true,
+    "desc": "Die Fähigkeit, in der Stille zu sitzen.",
+    "icon": "lotus",
+    "req": []
+  },
+  {
+    "id": "mon_2",
+    "path": "monk",
+    "name": "Qi Gong Routinen",
+    "cost": 100,
+    "unlocked": false,
+    "desc": "Tägliche Praxis zur Lenkung des Energieflusses.",
+    "icon": "wind",
+    "req": ["mon_1"]
+  },
+  {
+    "id": "mon_3",
+    "path": "monk",
+    "name": "Tibetische Visualisierung",
+    "cost": 300,
+    "unlocked": false,
+    "desc": "Komplexe geistige Konstruktionen aufbauen und halten.",
+    "icon": "sun",
+    "req": ["mon_2"]
+  },
+  {
+    "id": "mon_4",
+    "path": "monk",
+    "name": "Bewusste Lebensführung",
+    "cost": 600,
+    "unlocked": false,
+    "desc": "Integration buddhistischer Prinzipien in den stressigen Schulalltag.",
+    "icon": "yin_yang",
+    "req": ["mon_3"]
+  },
+  {
+    "id": "acr_1",
+    "path": "acrobat",
+    "name": "Körperliches Fundament",
+    "cost": 0,
+    "unlocked": true,
+    "desc": "Gesunde Ernährung und Huawei Watch GT4 Tracking aktiv.",
+    "icon": "heart",
+    "req": []
+  },
+  {
+    "id": "acr_2",
+    "path": "acrobat",
+    "name": "Flow Arts & Jonglage",
+    "cost": 150,
+    "unlocked": false,
+    "desc": "3-Ball Kaskade und Grundformen der Flow Arts gemeistert.",
+    "icon": "activity",
+    "req": ["acr_1"]
+  },
+  {
+    "id": "acr_3",
+    "path": "acrobat",
+    "name": "Gym & Laufen",
+    "cost": 200,
+    "unlocked": false,
+    "desc": "Regelmäßige physische Belastung zur Stressresistenz.",
+    "icon": "zap",
+    "req": ["acr_1"]
+  },
+  {
+    "id": "acr_4",
+    "path": "acrobat",
+    "name": "Geist-Körper-Symbiose",
+    "cost": 500,
+    "unlocked": false,
+    "desc": "Die Erkenntnis, dass physischer Flow und mentaler Flow (Coding/Musik) eins sind.",
+    "icon": "infinity",
+    "req": ["acr_2", "acr_3"]
+  }
+]

@@ -1,0 +1,30 @@
+[
+  {
+    "id": "boss_1",
+    "name": "Dämon der Prokrastination",
+    "maxHp": 200,
+    "type": "Mental",
+    "color": "text-purple-400"
+  },
+  {
+    "id": "boss_2",
+    "name": "Die Hydra der unkorrigierten Klausuren",
+    "maxHp": 300,
+    "type": "Arbeit",
+    "color": "text-red-400"
+  },
+  {
+    "id": "boss_3",
+    "name": "Technischer Schulden-Goliath",
+    "maxHp": 250,
+    "type": "System",
+    "color": "text-blue-400"
+  },
+  {
+    "id": "boss_4",
+    "name": "Nebel der Lethargie",
+    "maxHp": 150,
+    "type": "Körper",
+    "color": "text-gray-400"
+  }
+]

@@ -1,0 +1,42 @@
+[
+  {
+    "id": "att_1",
+    "name": "Sokratischer Schlag",
+    "desc": "Zertrümmere Illusionen durch reine Logik.",
+    "cost": { "mana": 10, "gold": 0 },
+    "dmg": 50,
+    "path": "socratic"
+  },
+  {
+    "id": "att_2",
+    "name": "Refactoring-Sturm",
+    "desc": "Löst technische Schulden auf.",
+    "cost": { "mana": 5, "gold": 15 },
+    "dmg": 60,
+    "path": "architect"
+  },
+  {
+    "id": "att_3",
+    "name": "808-Donner",
+    "desc": "Mächtiger Sub-Bass-Angriff.",
+    "cost": { "mana": 20, "gold": 0 },
+    "dmg": 80,
+    "path": "bard"
+  },
+  {
+    "id": "att_4",
+    "name": "Fokus-Mantra",
+    "desc": "Ein sanfter, aber durchdringender Strahl der Klarheit.",
+    "cost": { "mana": 0, "gold": 25 },
+    "dmg": 45,
+    "path": "monk"
+  },
+  {
+    "id": "att_5",
+    "name": "Kinetische Entladung",
+    "desc": "Explosiver Angriff aus der Bewegung.",
+    "cost": { "mana": 15, "gold": 10 },
+    "dmg": 70,
+    "path": "acrobat"
+  }
+]

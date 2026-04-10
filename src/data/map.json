@@ -1,0 +1,36 @@
+{
+  "tiles": [
+    {
+      "q": 0,
+      "r": 0,
+      "type": "nexus",
+      "name": "Zentrum des Geistes",
+      "discovered": true
+    },
+    {
+      "q": 1,
+      "r": 0,
+      "type": "academy",
+      "name": "Sokratische Akademie",
+      "discovered": true
+    },
+    {
+      "q": 0,
+      "r": 1,
+      "type": "monastery",
+      "name": "Tempel der Stille",
+      "discovered": true
+    },
+    { "q": -1, "r": 1, "type": "studio", "name": "Klanglabor", "discovered": false },
+    { "q": -1, "r": 0, "type": "server", "name": "Docker Core", "discovered": false },
+    { "q": 0, "r": -1, "type": "gym", "name": "Eisenhalle", "discovered": false },
+    {
+      "q": 1,
+      "r": -1,
+      "type": "wilds",
+      "name": "Unbekanntes Gebiet",
+      "discovered": false
+    }
+  ],
+  "playerPosition": { "q": 0, "r": 0 }
+}
