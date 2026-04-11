@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import Icon from './Icon';
 import { PATH_COLORS } from '../data/constants';
-import { TIER_LABELS, TIER_COLORS } from '../data/skillTreeData';
+import { TIER_LABELS } from '../data/skillTreeData';
 
 const ICON_OPTIONS = [
   'brain', 'scroll', 'pen', 'crown', 'book', 'eye', 'yin_yang',
@@ -10,250 +10,167 @@ const ICON_OPTIONS = [
   'server', 'database', 'globe', 'map', 'edit',
 ];
 
-const SkillTree = ({ gameState, unlockSkill, addCustomSkill, skillTreeData }) => {
-  const [activePath, setActivePath] = useState(null); // null = show all (desktop), path id = focused
-  const [selectedSkill, setSelectedSkill] = useState(null);
-  const [editMode, setEditMode] = useState(false);
+// ─── Resolve a single skill node ──────────────────────────────
+const resolveSkill = (skill, skills) => {
+  const stateSkill = skills.find((s) => s.id === skill.id);
+  const isUnlocked = stateSkill?.unlocked || false;
+  const _reqsMet = skill.req.every(
+    (reqId) => skills.find((s) => s.id === reqId)?.unlocked
+  );
+  return { ...skill, isUnlocked, isAvailable: !isUnlocked && _reqsMet };
+};
 
-  // Add Custom Skill form state
-  const [formPath, setFormPath] = useState('socratic');
+// ─── Single Skill Card ────────────────────────────────────────
+const SkillCard = ({ skill, pathId, onSelect }) => {
+  const { isUnlocked, isAvailable } = skill;
+  const pathColor = PATH_COLORS[pathId] || 'from-slate-800 to-slate-600 border-slate-500';
+
+  return (
+    <button
+      onClick={onSelect}
+      className={`relative w-full p-3 md:p-3.5 rounded-xl border-2 text-left transition-all duration-200 group ${
+        isUnlocked
+          ? `bg-gradient-to-br ${pathColor} shadow-lg`
+          : isAvailable
+          ? 'bg-slate-800 border-slate-600 hover:border-slate-400 cursor-pointer hover:scale-[1.02]'
+          : 'bg-slate-900/50 border-slate-800/60 opacity-50 cursor-not-allowed grayscale'
+      }`}
+    >
+      <div className="flex items-start gap-2">
+        <div className={`p-1.5 rounded-lg shrink-0 ${isUnlocked ? 'bg-black/30' : 'bg-slate-700/50'}`}>
+          <Icon name={skill.icon} className="w-4 h-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-1">
+            <h4 className={`font-bold leading-tight text-xs md:text-sm truncate ${isUnlocked ? 'text-white' : 'text-slate-300'}`}>
+              {skill.name}
+            </h4>
+            {!isUnlocked && (
+              <span className="text-[10px] font-mono bg-slate-900/80 px-1.5 py-0.5 rounded text-amber-400 shrink-0">
+                {skill.cost}
+              </span>
+            )}
+          </div>
+          <p className={`text-[11px] mt-0.5 line-clamp-2 ${isUnlocked ? 'text-slate-300' : 'text-slate-500'}`}>
+            {skill.desc}
+          </p>
+        </div>
+      </div>
+    </button>
+  );
+};
+
+// ─── Path Column / Section ────────────────────────────────────
+const PathSection = ({ path, skills, onSelectSkill, editMode, onAddSkill }) => {
+  const [collapsed, setCollapsed] = useState(false);
+  const tierOrder = ['basis', 'schwelle', 'quantensprung', 'meisterschaft'];
+
+  return (
+    <div className="flex flex-col">
+      {/* Path Header — clickable to collapse on mobile */}
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        className="md:cursor-default text-center md:pointer-events-none py-3 border-b border-slate-800/60 sticky top-0 bg-slate-950/90 backdrop-blur z-10"
+      >
+        <h2 className={`text-sm md:text-base font-bold bg-gradient-to-r ${PATH_COLORS[path.id]} bg-clip-text text-transparent uppercase tracking-widest`}>
+          {path.title}
+        </h2>
+        <p className="text-[10px] text-slate-600 mt-0.5">{path.subtitle}</p>
+        <span className="md:hidden text-[10px] text-slate-600">
+          {collapsed ? '▼ zeigen' : '▲ zuklappen'}
+        </span>
+      </button>
+
+      {!collapsed && (
+        <div className="flex flex-col gap-3 p-2 md:p-0">
+          {tierOrder.map((tierKey) => {
+            const tier = path.tiers?.[tierKey];
+            if (!tier) return null;
+            const tierSkills = skills
+              .filter((s) => s.tier === tier.tierNumber)
+              .map((s) => resolveSkill(s, skills));
+            if (tierSkills.length === 0) return null;
+
+            return (
+              <div key={tierKey} className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-600">
+                    {tier.tierNumber}
+                  </span>
+                  <div className="flex-1 h-px bg-slate-800/60"></div>
+                </div>
+                <div className="space-y-1.5">
+                  {tierSkills.map((skill) => (
+                    <SkillCard
+                      key={skill.id}
+                      skill={skill}
+                      pathId={path.id}
+                      onSelect={() => onSelectSkill({ ...skill, path: path.id })}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+
+          {editMode && (
+            <button
+              onClick={() => onAddSkill(path.id)}
+              className="w-full py-2.5 rounded-xl border-2 border-dashed border-slate-700/60 text-slate-600 hover:text-slate-400 hover:border-slate-500 transition-all text-xs font-bold mt-1"
+            >
+              + Skill
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Add Skill Modal Form ─────────────────────────────────────
+const AddSkillForm = ({ onClose, onAdd, skillTreeData, preselectedPath }) => {
+  const [formPath, setFormPath] = useState(preselectedPath || 'socratic');
   const [formTier, setFormTier] = useState(1);
   const [formName, setFormName] = useState('');
   const [formDesc, setFormDesc] = useState('');
   const [formCost, setFormCost] = useState(100);
   const [formIcon, setFormIcon] = useState('eye');
-  const [showForm, setShowForm] = useState(false);
 
-  // Build path entries from skillTreeData (dynamic, not hardcoded)
-  const pathEntries = useMemo(() => {
-    return Object.values(skillTreeData).map((path) => {
-      // Collect all skills for this path from gameState
-      const pathSkills = gameState.skills.filter((s) => s.path === path.id);
-      return { ...path, skills: pathSkills };
-    });
-  }, [skillTreeData, gameState.skills]);
-
-  // Determine which paths to render
-  const visiblePaths = activePath
-    ? pathEntries.filter((p) => p.id === activePath)
-    : pathEntries;
-
-  // Resolve a skill's unlock state and prerequisite status
-  const resolveSkill = (skill) => {
-    const stateSkill = gameState.skills.find((s) => s.id === skill.id);
-    const isUnlocked = stateSkill?.unlocked || false;
-    const _reqsMet = skill.req.every(
-      (reqId) => gameState.skills.find((s) => s.id === reqId)?.unlocked
-    );
-    const isAvailable = !isUnlocked && _reqsMet;
-    return { ...skill, isUnlocked, isAvailable };
-  };
-
-  const handleAddCustomSkill = () => {
+  const handleAdd = () => {
     if (!formName.trim()) return;
-    const result = addCustomSkill(formPath, formTier, {
+    onAdd(formPath, formTier, {
       name: formName.trim(),
       desc: formDesc.trim(),
       cost: Number(formCost) || 100,
       icon: formIcon,
       req: [],
     });
-    if (result) {
-      setFormName('');
-      setFormDesc('');
-      setFormCost(100);
-      setShowForm(false);
-    }
-  };
-
-  const renderSkillCard = (skill, pathId) => {
-    const { isUnlocked, isAvailable } = resolveSkill(skill);
-    const pathColor = PATH_COLORS[pathId] || 'from-slate-800 to-slate-600 border-slate-500';
-
-    return (
-      <button
-        key={skill.id}
-        onClick={() => setSelectedSkill({ ...skill, path: pathId })}
-        className={`relative w-full p-3 md:p-4 rounded-xl border-2 text-left transition-all duration-300 group ${
-          isUnlocked
-            ? `bg-gradient-to-br ${pathColor} opacity-100 shadow-lg`
-            : isAvailable
-            ? 'bg-slate-800 border-slate-500 hover:border-slate-300 opacity-90 cursor-pointer hover:scale-[1.02]'
-            : 'bg-slate-900/60 border-slate-800 opacity-40 cursor-not-allowed grayscale'
-        }`}
-      >
-        <div className="flex justify-between items-start mb-2">
-          <div className={`p-2 rounded-lg ${isUnlocked ? 'bg-black/30' : 'bg-slate-700/50'}`}>
-            <Icon name={skill.icon} className="w-5 h-5" />
-          </div>
-          {!isUnlocked && (
-            <span className="text-xs font-mono bg-slate-900/80 px-2 py-1 rounded text-amber-400">
-              {skill.cost} SP
-            </span>
-          )}
-        </div>
-        <h3 className={`font-bold leading-tight text-sm ${isUnlocked ? 'text-white' : 'text-slate-300'}`}>
-          {skill.name}
-        </h3>
-        <p className={`text-xs mt-1 line-clamp-2 ${isUnlocked ? 'text-slate-300' : 'text-slate-500'}`}>
-          {skill.desc}
-        </p>
-        {skill.isCustom && (
-          <span className="absolute top-2 right-2 text-[10px] bg-indigo-600/80 text-indigo-200 px-1.5 py-0.5 rounded-full">
-            Custom
-          </span>
-        )}
-        {/* Connector line to next tier */}
-        {!isUnlocked && skill.req.length > 0 && (
-          <div className="absolute -top-3 left-1/2 w-0.5 h-3 bg-slate-700"></div>
-        )}
-      </button>
-    );
-  };
-
-  const renderPathColumn = (path) => {
-    const tierOrder = ['basis', 'schwelle', 'quantensprung', 'meisterschaft'];
-
-    return (
-      <div key={path.id} className="flex flex-col gap-4 min-w-[260px] md:min-w-0 flex-1">
-        {/* Path Header */}
-        <div className="text-center mb-2 sticky top-0 bg-slate-950/90 backdrop-blur py-3 z-10 border-b border-slate-800">
-          <h2 className={`text-lg md:text-xl font-bold bg-gradient-to-r ${PATH_COLORS[path.id]} bg-clip-text text-transparent uppercase tracking-widest`}>
-            {path.title}
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">{path.subtitle}</p>
-          <p className="text-[10px] text-slate-600 mt-0.5 italic">{path.endgameGoal?.slice(0, 60)}…</p>
-        </div>
-
-        {/* Tiers */}
-        {tierOrder.map((tierKey) => {
-          const tier = path.tiers?.[tierKey];
-          if (!tier) return null;
-          const skills = path.skills.filter((s) => s.tier === tier.tierNumber);
-          if (skills.length === 0) return null;
-
-          return (
-            <div key={tierKey} className="space-y-2">
-              {/* Tier Label */}
-              <div className="flex items-center gap-2 px-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  Stufe {tier.tierNumber}
-                </span>
-                <span className="text-[10px] text-slate-600 truncate">
-                  {tier.label}
-                </span>
-                <div className="flex-1 h-px bg-slate-800"></div>
-              </div>
-
-              {/* Skill Cards */}
-              <div className="space-y-2">
-                {skills.map((skill) => renderSkillCard(skill, path.id))}
-              </div>
-            </div>
-          );
-        })}
-
-        {/* Add Skill Button (edit mode) */}
-        {editMode && (
-          <button
-            onClick={() => {
-              setFormPath(path.id);
-              setFormTier(1);
-              setShowForm(true);
-            }}
-            className="w-full py-3 rounded-xl border-2 border-dashed border-slate-700 text-slate-500 hover:text-slate-300 hover:border-slate-500 transition-all text-sm font-bold"
-          >
-            + Skill hinzufügen
-          </button>
-        )}
-      </div>
-    );
   };
 
   return (
-    <>
-      {/* ─── Toolbar ──────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2 mb-4 px-2">
-        {/* Path Filter Tabs */}
-        <div className="flex flex-wrap gap-1.5 flex-1">
-          <button
-            onClick={() => setActivePath(null)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              !activePath
-                ? 'bg-slate-700 text-white shadow'
-                : 'bg-slate-800/50 text-slate-500 hover:text-slate-300'
-            }`}
-          >
-            Alle
-          </button>
-          {pathEntries.map((path) => (
-            <button
-              key={path.id}
-              onClick={() => setActivePath(path.id === activePath ? null : path.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                activePath === path.id
-                  ? `bg-gradient-to-r ${PATH_COLORS[path.id]} text-white shadow`
-                  : 'bg-slate-800/50 text-slate-500 hover:text-slate-300'
-              }`}
-            >
-              {path.title}
-            </button>
-          ))}
-        </div>
+    <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-slate-950/80 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="bg-slate-900 border border-slate-700 md:rounded-3xl rounded-t-3xl w-full max-w-lg shadow-2xl relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-5 md:p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-indigo-400 uppercase tracking-wider">Neuen Skill hinzufügen</h3>
+            <button onClick={onClose} className="text-slate-500 hover:text-white text-lg">✕</button>
+          </div>
 
-        {/* Edit Mode Toggle */}
-        <button
-          onClick={() => setEditMode(!editMode)}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-            editMode
-              ? 'bg-amber-600/20 border-amber-500 text-amber-400'
-              : 'bg-slate-800 border-slate-700 text-slate-500 hover:text-slate-300'
-          }`}
-        >
-          {editMode ? '✏️ Edit AN' : '✏️ Edit'}
-        </button>
-
-        {/* Global Add Skill Button */}
-        {editMode && (
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-500 transition-all"
-          >
-            + Neuer Skill
-          </button>
-        )}
-      </div>
-
-      {/* ─── Add Skill Form ───────────────────────────────── */}
-      {showForm && editMode && (
-        <div className="mx-2 mb-4 p-4 md:p-6 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl">
-          <h3 className="text-sm font-bold text-indigo-400 mb-4 uppercase tracking-wider">
-            Neuen Skill hinzufügen
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {/* Name */}
-            <div>
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="col-span-2">
               <label className="block text-[10px] uppercase tracking-wider text-slate-500 mb-1">Name *</label>
               <input
                 type="text"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
-                placeholder="Skill-Name..."
+                placeholder="Skill-Name…"
                 className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                autoFocus
               />
             </div>
-            {/* Cost */}
-            <div>
-              <label className="block text-[10px] uppercase tracking-wider text-slate-500 mb-1">SP Kosten</label>
-              <input
-                type="number"
-                value={formCost}
-                onChange={(e) => setFormCost(e.target.value)}
-                min="0"
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
-              />
-            </div>
-            {/* Path */}
             <div>
               <label className="block text-[10px] uppercase tracking-wider text-slate-500 mb-1">Pfad</label>
               <select
@@ -266,7 +183,6 @@ const SkillTree = ({ gameState, unlockSkill, addCustomSkill, skillTreeData }) =>
                 ))}
               </select>
             </div>
-            {/* Tier */}
             <div>
               <label className="block text-[10px] uppercase tracking-wider text-slate-500 mb-1">Stufe</label>
               <select
@@ -275,45 +191,49 @@ const SkillTree = ({ gameState, unlockSkill, addCustomSkill, skillTreeData }) =>
                 className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
               >
                 {[1, 2, 3, 4].map((t) => (
-                  <option key={t} value={t}>Stufe {t} — {TIER_LABELS[t]}</option>
+                  <option key={t} value={t}>Stufe {t}</option>
                 ))}
               </select>
             </div>
-            {/* Icon */}
+            <div>
+              <label className="block text-[10px] uppercase tracking-wider text-slate-500 mb-1">SP Kosten</label>
+              <input
+                type="number"
+                value={formCost}
+                onChange={(e) => setFormCost(e.target.value)}
+                min="0"
+                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
             <div>
               <label className="block text-[10px] uppercase tracking-wider text-slate-500 mb-1">Icon</label>
-              <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto custom-scrollbar bg-slate-800 border border-slate-700 rounded-lg p-2">
+              <div className="flex flex-wrap gap-1 max-h-12 overflow-y-auto custom-scrollbar bg-slate-800 border border-slate-700 rounded-lg p-1.5">
                 {ICON_OPTIONS.map((iconName) => (
                   <button
                     key={iconName}
                     onClick={() => setFormIcon(iconName)}
-                    className={`p-1.5 rounded ${
-                      formIcon === iconName
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700 text-slate-400 hover:text-white'
-                    }`}
-                    title={iconName}
+                    className={`p-1 rounded ${formIcon === iconName ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-400 hover:text-white'}`}
                   >
-                    <Icon name={iconName} className="w-4 h-4" />
+                    <Icon name={iconName} className="w-3.5 h-3.5" />
                   </button>
                 ))}
               </div>
             </div>
-            {/* Description */}
-            <div className="md:col-span-2">
+            <div className="col-span-2">
               <label className="block text-[10px] uppercase tracking-wider text-slate-500 mb-1">Beschreibung</label>
               <textarea
                 value={formDesc}
                 onChange={(e) => setFormDesc(e.target.value)}
-                placeholder="Skill-Beschreibung..."
+                placeholder="Beschreibung…"
                 rows={2}
                 className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 resize-none"
               />
             </div>
           </div>
+
           <div className="flex gap-2 mt-4">
             <button
-              onClick={handleAddCustomSkill}
+              onClick={handleAdd}
               disabled={!formName.trim()}
               className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all ${
                 formName.trim()
@@ -321,26 +241,183 @@ const SkillTree = ({ gameState, unlockSkill, addCustomSkill, skillTreeData }) =>
                   : 'bg-slate-800 text-slate-600 cursor-not-allowed'
               }`}
             >
-              Skill hinzufügen
+              Hinzufügen
             </button>
             <button
-              onClick={() => setShowForm(false)}
-              className="px-6 py-2.5 rounded-xl font-bold text-sm bg-slate-800 text-slate-400 hover:text-white transition-all"
+              onClick={onClose}
+              className="px-5 py-2.5 rounded-xl font-bold text-sm bg-slate-800 text-slate-500 hover:text-white transition-all"
             >
               Abbrechen
             </button>
           </div>
         </div>
-      )}
+      </div>
+    </div>
+  );
+};
 
-      {/* ─── Skill Tree Grid ──────────────────────────────── */}
-      <div className="h-full overflow-y-auto overflow-x-auto pb-20 custom-scrollbar px-2">
-        <div className="flex gap-6 min-w-max">
-          {visiblePaths.map((path) => renderPathColumn(path))}
+// ─── Skill Detail Modal ───────────────────────────────────────
+const SkillDetailModal = ({ skill, gameState, unlockSkill, onClose }) => {
+  const isUnlocked = gameState.skills.find((s) => s.id === skill.id)?.unlocked;
+  const reqsMet = skill.req.every(
+    (reqId) => gameState.skills.find((s) => s.id === reqId)?.unlocked
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-slate-950/80 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="bg-slate-900 border border-slate-700 md:rounded-3xl rounded-t-3xl max-w-md w-full shadow-2xl relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-5 md:p-7">
+          <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white text-lg">✕</button>
+
+          <div className="flex items-center gap-4 mb-5">
+            <div className={`p-3.5 rounded-2xl bg-gradient-to-br ${PATH_COLORS[skill.path] || 'from-slate-800 to-slate-600'}`}>
+              <Icon name={skill.icon} className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg md:text-xl font-bold">{skill.name}</h2>
+              <p className="text-slate-500 text-[10px] uppercase tracking-widest">
+                {TIER_LABELS[skill.tier] || `Stufe ${skill.tier}`}
+              </p>
+              {skill.isCustom && (
+                <span className="text-[10px] bg-indigo-600/60 text-indigo-300 px-2 py-0.5 rounded-full mt-1 inline-block">
+                  Benutzerdefiniert
+                </span>
+              )}
+            </div>
+          </div>
+
+          <p className="text-slate-300 mb-5 leading-relaxed text-sm">{skill.desc}</p>
+
+          {!isUnlocked && (
+            <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 mb-5">
+              <p className="text-xs text-slate-500 mb-1.5">Voraussetzungen:</p>
+              {skill.req.length === 0 ? (
+                <p className="text-xs text-emerald-400">Keine — Basis-Skill</p>
+              ) : (
+                <ul className="text-xs space-y-0.5">
+                  {skill.req.map((reqId) => {
+                    const reqSkill = gameState.skills.find((s) => s.id === reqId);
+                    const isMet = reqSkill?.unlocked;
+                    return (
+                      <li key={reqId} className={`flex items-center gap-1.5 ${isMet ? 'text-emerald-400' : 'text-red-400'}`}>
+                        <span>{isMet ? '✓' : '✗'}</span> {reqSkill?.name || reqId}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              <div className="mt-3 pt-3 border-t border-slate-800 flex justify-between items-center">
+                <span className="text-xs text-slate-500">Kosten:</span>
+                <span className={`font-mono font-bold text-sm ${gameState.skillPoints >= skill.cost ? 'text-amber-400' : 'text-red-400'}`}>
+                  {skill.cost} SP
+                </span>
+              </div>
+            </div>
+          )}
+
+          {isUnlocked ? (
+            <button disabled className="w-full py-3.5 rounded-xl bg-slate-800 text-emerald-400 font-bold border border-emerald-900/50 cursor-not-allowed text-sm">
+              Bereits freigeschaltet ✓
+            </button>
+          ) : (
+            <button
+              onClick={() => { if (unlockSkill(skill.id)) onClose(); }}
+              className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all ${
+                gameState.skillPoints >= skill.cost && reqsMet
+                  ? 'bg-amber-500 hover:bg-amber-400 text-slate-900 shadow-[0_0_20px_rgba(245,158,11,0.4)]'
+                  : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+              }`}
+            >
+              Skill Freischalten
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  Main SkillTree Component
+// ═══════════════════════════════════════════════════════════════
+const SkillTree = ({ gameState, unlockSkill, addCustomSkill, skillTreeData }) => {
+  const [selectedSkill, setSelectedSkill] = useState(null);
+  const [editMode, setEditMode] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addForPath, setAddForPath] = useState(null);
+
+  // Build path entries dynamically from data
+  const pathEntries = useMemo(() => {
+    return Object.values(skillTreeData).map((path) => ({
+      ...path,
+      skills: gameState.skills.filter((s) => s.path === path.id),
+    }));
+  }, [skillTreeData, gameState.skills]);
+
+  const handleOpenAddForm = (pathId) => {
+    setAddForPath(pathId);
+    setShowAddForm(true);
+  };
+
+  return (
+    <>
+      {/* ─── Minimal Toolbar ──────────────────────────────── */}
+      <div className="flex items-center justify-between px-2 mb-2">
+        <div className="flex items-center gap-2">
+          <Icon name="brain" className="w-4 h-4 text-indigo-400" />
+          <span className="text-[10px] uppercase tracking-widest text-slate-600 font-bold">
+            Skillbaum
+          </span>
+          <span className="text-[10px] text-slate-700">
+            {gameState.skillPoints} SP verfügbar
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setEditMode(!editMode)}
+            className={`px-2.5 py-1 rounded-md text-[10px] font-bold border transition-all ${
+              editMode
+                ? 'bg-amber-600/20 border-amber-500/60 text-amber-400'
+                : 'bg-transparent border-slate-700 text-slate-600 hover:text-slate-400'
+            }`}
+          >
+            {editMode ? '✓ Fertig' : '+ Bearbeiten'}
+          </button>
+          {editMode && (
+            <button
+              onClick={() => { setAddForPath(null); setShowAddForm(true); }}
+              className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-indigo-600 text-white hover:bg-indigo-500 transition-all"
+            >
+              Neuer Skill
+            </button>
+          )}
         </div>
       </div>
 
-      {/* ─── Skill Detail Modal ───────────────────────────── */}
+      {/* ─── Skill Grid: 1 col mobile → 2 iPad → 3 lg → 5 xl  */}
+      <div className="h-full overflow-y-auto pb-20 custom-scrollbar">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-0 md:gap-4 px-1">
+          {pathEntries.map((path) => (
+            <div
+              key={path.id}
+              className="border border-slate-800/40 md:rounded-2xl md:bg-slate-900/30 md:border md:border-slate-800/40 overflow-hidden"
+            >
+              <PathSection
+                path={path}
+                skills={path.skills}
+                onSelectSkill={setSelectedSkill}
+                editMode={editMode}
+                onAddSkill={handleOpenAddForm}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── Modals ───────────────────────────────────────── */}
       {selectedSkill && (
         <SkillDetailModal
           skill={selectedSkill}
@@ -349,107 +426,19 @@ const SkillTree = ({ gameState, unlockSkill, addCustomSkill, skillTreeData }) =>
           onClose={() => setSelectedSkill(null)}
         />
       )}
+
+      {showAddForm && (
+        <AddSkillForm
+          onClose={() => setShowAddForm(false)}
+          onAdd={(pathId, tier, data) => {
+            addCustomSkill(pathId, tier, data);
+            setShowAddForm(false);
+          }}
+          skillTreeData={skillTreeData}
+          preselectedPath={addForPath}
+        />
+      )}
     </>
-  );
-};
-
-// ─── Skill Detail Modal (extracted for clarity) ─────────────────
-const SkillDetailModal = ({ skill, gameState, unlockSkill, onClose }) => {
-  const isUnlocked = gameState.skills.find((s) => s.id === skill.id)?.unlocked;
-  const reqsMet = skill.req.every(
-    (reqId) => gameState.skills.find((s) => s.id === reqId)?.unlocked
-  );
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm" onClick={onClose}>
-      <div
-        className="bg-slate-900 border border-slate-700 p-6 md:p-8 rounded-3xl max-w-md w-full shadow-2xl relative animate-in fade-in zoom-in duration-200"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-slate-500 hover:text-white text-lg"
-        >
-          ✕
-        </button>
-
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <div className={`p-4 rounded-2xl bg-gradient-to-br ${PATH_COLORS[skill.path] || 'from-slate-800 to-slate-600'}`}>
-            <Icon name={skill.icon} className="w-8 h-8 text-white" />
-          </div>
-          <div>
-            <h2 className="text-xl md:text-2xl font-bold">{skill.name}</h2>
-            <p className="text-slate-400 uppercase tracking-widest text-[10px]">
-              {TIER_LABELS[skill.tier] || `Stufe ${skill.tier}`}
-            </p>
-            {skill.isCustom && (
-              <span className="text-[10px] bg-indigo-600/60 text-indigo-300 px-2 py-0.5 rounded-full mt-1 inline-block">
-                Benutzerdefiniert
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Description */}
-        <p className="text-slate-300 mb-6 leading-relaxed text-sm md:text-base">
-          {skill.desc}
-        </p>
-
-        {/* Requirements */}
-        {!isUnlocked && (
-          <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 mb-6">
-            <p className="text-sm text-slate-400 mb-2">Voraussetzungen:</p>
-            {skill.req.length === 0 ? (
-              <p className="text-sm text-emerald-400">Keine — Basis-Skill</p>
-            ) : (
-              <ul className="text-sm space-y-1">
-                {skill.req.map((reqId) => {
-                  const reqSkill = gameState.skills.find((s) => s.id === reqId);
-                  const isMet = reqSkill?.unlocked;
-                  return (
-                    <li key={reqId} className={`flex items-center gap-2 ${isMet ? 'text-emerald-400' : 'text-red-400'}`}>
-                      <span>{isMet ? '✓' : '✗'}</span> {reqSkill?.name || reqId}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-            <div className="mt-4 pt-4 border-t border-slate-800 flex justify-between items-center">
-              <span className="text-sm text-slate-400">Kosten:</span>
-              <span className={`font-mono font-bold ${gameState.skillPoints >= skill.cost ? 'text-amber-400' : 'text-red-400'}`}>
-                {skill.cost} SP
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Action Button */}
-        {isUnlocked ? (
-          <button
-            disabled
-            className="w-full py-4 rounded-xl bg-slate-800 text-emerald-400 font-bold border border-emerald-900/50 cursor-not-allowed"
-          >
-            Bereits freigeschaltet ✓
-          </button>
-        ) : (
-          <button
-            onClick={() => {
-              if (unlockSkill(skill.id)) {
-                onClose();
-              }
-            }}
-            className={`w-full py-4 rounded-xl font-bold transition-all ${
-              gameState.skillPoints >= skill.cost && reqsMet
-                ? 'bg-amber-500 hover:bg-amber-400 text-slate-900 shadow-[0_0_20px_rgba(245,158,11,0.4)]'
-                : 'bg-slate-800 text-slate-500 cursor-not-allowed'
-            }`}
-          >
-            Skill Freischalten
-          </button>
-        )}
-      </div>
-    </div>
   );
 };
 

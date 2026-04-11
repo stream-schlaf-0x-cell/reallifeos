@@ -70,7 +70,7 @@ const CLAIM_PATHS = [
   },
 ];
 
-// ─── Parchment Quest Card (unchanged from before) ─────────────────
+// ─── Parchment Quest Card ─────────────────────────────────────────
 const PATH_EMOJI = {
   architect: "🏗️",
   socratic: "📜",
@@ -96,7 +96,7 @@ const QuestCard = ({ quest, onComplete, poiBonuses }) => {
   return (
     <button
       onClick={() => onComplete(quest)}
-      className="group relative flex flex-col min-h-[160px] text-left transition-all active:scale-[0.97] duration-200"
+      className="group relative flex flex-col min-h-[140px] text-left transition-all active:scale-[0.97] duration-200"
     >
       <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-amber-950/80 via-slate-900/90 to-slate-900/95 border-2 border-amber-800/30 group-hover:border-amber-600/60 transition-colors overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-700/40 via-amber-500/60 to-amber-700/40"></div>
@@ -143,7 +143,7 @@ const QuestCard = ({ quest, onComplete, poiBonuses }) => {
               <Icon name="move" className="w-3 h-3 text-emerald-400" />
               <span className="text-xs font-mono font-bold text-emerald-300">+{totalMove} MP</span>
               {(poiBonuses?.moveRegen || 0) > 0 && (
-                <span className="text-[9px] text-emerald-500 ml-0.5">(+{poiBonuses.moveRegen} POI)</span>
+                <span className="text-[9px] text-emerald-500 ml-0.5">(+{poiBonuses.moveRegen})</span>
               )}
             </div>
           )}
@@ -152,7 +152,7 @@ const QuestCard = ({ quest, onComplete, poiBonuses }) => {
               <Icon name="gold" className="w-3 h-3 text-yellow-400" />
               <span className="text-xs font-mono font-bold text-yellow-300">+{totalGold} G</span>
               {(poiBonuses?.goldRegen || 0) > 0 && (
-                <span className="text-[9px] text-yellow-500 ml-0.5">(+{poiBonuses.goldRegen} POI)</span>
+                <span className="text-[9px] text-yellow-500 ml-0.5">(+{poiBonuses.goldRegen})</span>
               )}
             </div>
           )}
@@ -161,7 +161,7 @@ const QuestCard = ({ quest, onComplete, poiBonuses }) => {
               <Icon name="mana" className="w-3 h-3 text-blue-400" />
               <span className="text-xs font-mono font-bold text-blue-300">+{totalMana} M</span>
               {(poiBonuses?.manaRegen || 0) > 0 && (
-                <span className="text-[9px] text-blue-500 ml-0.5">(+{poiBonuses.manaRegen} POI)</span>
+                <span className="text-[9px] text-blue-500 ml-0.5">(+{poiBonuses.manaRegen})</span>
               )}
             </div>
           )}
@@ -171,11 +171,12 @@ const QuestCard = ({ quest, onComplete, poiBonuses }) => {
   );
 };
 
-// ─── Main Quests Component ────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+//  Main Quests Component
+// ═══════════════════════════════════════════════════════════════
 const Quests = ({ handleQuestComplete, gameState, claimTat }) => {
   const poiBonuses = gameState?.poiBonuses || { manaRegen: 0, goldRegen: 0, moveRegen: 0 };
-  const [iframeReady, setIframeReady] = useState(false);
-  const [claimedNow, setClaimedNow] = useState(null); // pathId of last claim for flash effect
+  const [claimedNow, setClaimedNow] = useState(null);
 
   const handleClaim = (pathId) => {
     claimTat(pathId);
@@ -201,44 +202,32 @@ const Quests = ({ handleQuestComplete, gameState, claimTat }) => {
         </div>
       </div>
 
-      {/* ═══ Schaufenster: Craft Iframe ═══ */}
-      <div className="mb-6 rounded-2xl border-2 border-slate-700/60 overflow-hidden shadow-[0_0_40px_rgba(15,23,42,0.8)]">
-        {/* Iframe top bar decoration */}
-        <div className="flex items-center gap-2 px-3 py-2 bg-slate-900/90 border-b border-slate-700/60">
-          <div className="flex gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-red-500/60"></div>
-            <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/60"></div>
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/60"></div>
+      {/* ═══ Craft Link Card (replaces broken iframe) ═══ */}
+      <div className="mb-5 p-4 md:p-5 rounded-2xl border-2 border-slate-700/50 bg-gradient-to-br from-slate-900 via-slate-900/95 to-slate-950 shadow-lg">
+        <div className="flex items-start gap-3">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-800 to-amber-600 shrink-0">
+            <Icon name="edit" className="w-5 h-5 text-white" />
           </div>
-          <div className="flex-1 text-center">
-            <span className="text-[10px] text-slate-500 font-mono tracking-wider">
-              📋 Craft — Daily Tasks
-            </span>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-bold text-amber-400 mb-0.5">
+              Dein Craft — Taten-Übersicht
+            </h3>
+            <p className="text-[11px] text-slate-500 leading-snug mb-3">
+              Öffne dein Craft-Dokument, hake erledigte Aufgaben ab und komme zurück, um deine Ressourcen einzufordern.
+            </p>
+            <a
+              href={CRAFT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-slate-900 font-bold text-xs transition-all shadow-[0_0_15px_rgba(217,119,6,0.2)] hover:shadow-[0_0_25px_rgba(217,119,6,0.4)]"
+            >
+              <Icon name="globe" className="w-3.5 h-3.5" />
+              In Craft öffnen
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
+              </svg>
+            </a>
           </div>
-          {!iframeReady && (
-            <span className="text-[10px] text-amber-500 animate-pulse">Lädt…</span>
-          )}
-        </div>
-
-        {/* The iframe itself */}
-        <div className="relative bg-slate-950">
-          {!iframeReady && (
-            <div className="absolute inset-0 flex items-center justify-center z-10">
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-8 h-8 border-2 border-amber-500/40 border-t-amber-400 rounded-full animate-spin"></div>
-                <span className="text-xs text-slate-500">Schaufenster wird geladen…</span>
-              </div>
-            </div>
-          )}
-          <iframe
-            src={CRAFT_URL}
-            title="Craft Daily Tasks"
-            className="w-full border-0"
-            style={{ height: "55vh", minHeight: "350px" }}
-            allow="clipboard-write"
-            loading="lazy"
-            onLoad={() => setIframeReady(true)}
-          />
         </div>
       </div>
 
@@ -252,7 +241,7 @@ const Quests = ({ handleQuestComplete, gameState, claimTat }) => {
           <div className="flex-1 h-px bg-gradient-to-r from-amber-800/40 to-transparent"></div>
         </div>
         <p className="text-[11px] text-slate-500 mb-3 italic">
-          Hast du eine Aufgabe in Craft erledigt? Trage sie hier ein — auf Ehrenwort.
+          Aufgabe in Craft erledigt? Hier eintragen — auf Ehrenwort.
         </p>
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-3">
@@ -266,22 +255,15 @@ const Quests = ({ handleQuestComplete, gameState, claimTat }) => {
                   isFlashing ? "scale-105 brightness-125" : ""
                 }`}
               >
-                {/* Flash overlay */}
                 {isFlashing && (
                   <div className={`absolute inset-0 rounded-xl bg-gradient-to-br ${cp.gradient} opacity-40 animate-pulse`}></div>
                 )}
-
-                {/* Icon */}
                 <div className={`relative p-2 rounded-lg bg-gradient-to-br ${cp.gradient}`}>
                   <Icon name={cp.icon} className="w-5 h-5 text-white" />
                 </div>
-
-                {/* Label */}
                 <span className={`relative text-xs font-bold ${cp.text} leading-tight text-center`}>
                   {cp.taskLabel}
                 </span>
-
-                {/* Reward */}
                 <div className="relative flex items-center gap-1">
                   <Icon name={cp.rewards.icon} className="w-3 h-3 text-slate-400" />
                   <span className="text-[10px] font-mono text-slate-400">
@@ -294,8 +276,8 @@ const Quests = ({ handleQuestComplete, gameState, claimTat }) => {
         </div>
       </div>
 
-      {/* ═══ Classic Quest Board (preset quests) ═══ */}
-      <div className="mb-4">
+      {/* ═══ Classic Quest Board ═══ */}
+      <div className="mb-3">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-lg">📋</span>
           <h3 className="text-sm font-bold text-amber-400 uppercase tracking-wider">
