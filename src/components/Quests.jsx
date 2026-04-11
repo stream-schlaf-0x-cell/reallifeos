@@ -6,7 +6,122 @@ import { getResourceRewards } from "../hooks/useGameState";
 
 const CRAFT_URL = "https://s.craft.me/09MPu0hzH12B7A";
 
-// ─── Path definitions for the claim board ─────────────────────────
+// ═══════════════════════════════════════════════════════════════
+//  Gilden-Aufträge: Gleichzeitiges Aufblühen
+//  The 5 Core Guild Bounties — honor-system, session-tracked
+// ═══════════════════════════════════════════════════════════════
+const GUILD_BOUNTIES = [
+  {
+    id: "socratic",
+    title: "Die Sokratische Schmiede",
+    description:
+      "30 Min Kavita-Textarbeit oder KI-gestützte Unterrichtsplanung.",
+    icon: "scroll",
+    pathLabel: "Sokratiker",
+    pathEmoji: "📜",
+    rewardText: "+50 Gold",
+    rewardDetail: { icon: "gold", amount: 50, label: "Gold" },
+    gradient: "from-amber-900/80 via-amber-950/90 to-slate-950/95",
+    border: "border-amber-500/40",
+    borderHover: "hover:border-amber-400/80",
+    accentText: "text-amber-400",
+    accentBg: "bg-amber-500",
+    accentGlow: "rgba(245,158,11,0.25)",
+    btnGradient: "from-amber-600 to-amber-500",
+    btnHover: "hover:from-amber-500 hover:to-amber-400",
+    btnText: "text-slate-950",
+    completedBorder: "border-emerald-500/50",
+    completedBg: "bg-emerald-900/10",
+  },
+  {
+    id: "bard",
+    title: "Kanalisierung des Flows",
+    description: "45 Min Ableton Live Session für yrrpheus/yolomeus.",
+    icon: "music",
+    pathLabel: "Barde",
+    pathEmoji: "🎵",
+    rewardText: "+40 Mana",
+    rewardDetail: { icon: "mana", amount: 40, label: "Mana" },
+    gradient: "from-purple-900/80 via-purple-950/90 to-slate-950/95",
+    border: "border-purple-500/40",
+    borderHover: "hover:border-purple-400/80",
+    accentText: "text-purple-400",
+    accentBg: "bg-purple-500",
+    accentGlow: "rgba(168,85,247,0.25)",
+    btnGradient: "from-purple-600 to-purple-500",
+    btnHover: "hover:from-purple-500 hover:to-purple-400",
+    btnText: "text-white",
+    completedBorder: "border-emerald-500/50",
+    completedBg: "bg-emerald-900/10",
+  },
+  {
+    id: "monk",
+    title: "Innere Ausrichtung",
+    description:
+      "20 Min Zazen, Qi Gong oder Visualisierung zur mentalen Vorbereitung.",
+    icon: "lotus",
+    pathLabel: "Mönch",
+    pathEmoji: "🧘",
+    rewardText: "+50 Mana",
+    rewardDetail: { icon: "mana", amount: 50, label: "Mana" },
+    gradient: "from-emerald-900/80 via-emerald-950/90 to-slate-950/95",
+    border: "border-emerald-500/40",
+    borderHover: "hover:border-emerald-400/80",
+    accentText: "text-emerald-400",
+    accentBg: "bg-emerald-500",
+    accentGlow: "rgba(16,185,129,0.25)",
+    btnGradient: "from-emerald-600 to-emerald-500",
+    btnHover: "hover:from-emerald-500 hover:to-emerald-400",
+    btnText: "text-slate-950",
+    completedBorder: "border-emerald-500/50",
+    completedBg: "bg-emerald-900/10",
+  },
+  {
+    id: "acrobat",
+    title: "Physische Resilienz",
+    description: "Gym, Laufen oder Flow Arts/Jonglage.",
+    icon: "activity",
+    pathLabel: "Akrobat",
+    pathEmoji: "🤸",
+    rewardText: "+30 Bewegungspunkte",
+    rewardDetail: { icon: "move", amount: 30, label: "MP" },
+    gradient: "from-red-900/80 via-red-950/90 to-slate-950/95",
+    border: "border-red-500/40",
+    borderHover: "hover:border-red-400/80",
+    accentText: "text-red-400",
+    accentBg: "bg-red-500",
+    accentGlow: "rgba(239,68,68,0.25)",
+    btnGradient: "from-red-600 to-red-500",
+    btnHover: "hover:from-red-500 hover:to-red-400",
+    btnText: "text-white",
+    completedBorder: "border-emerald-500/50",
+    completedBg: "bg-emerald-900/10",
+  },
+  {
+    id: "architect",
+    title: "Wartung des Motors",
+    description:
+      "System-Revision in Craft, Dify-Optimierung oder Inbox Zero.",
+    icon: "server",
+    pathLabel: "Architekt",
+    pathEmoji: "🏗️",
+    rewardText: "+20 Bewegungspunkte",
+    rewardDetail: { icon: "move", amount: 20, label: "MP" },
+    gradient: "from-blue-900/80 via-blue-950/90 to-slate-950/95",
+    border: "border-blue-500/40",
+    borderHover: "hover:border-blue-400/80",
+    accentText: "text-blue-400",
+    accentBg: "bg-blue-500",
+    accentGlow: "rgba(59,130,246,0.25)",
+    btnGradient: "from-blue-600 to-blue-500",
+    btnHover: "hover:from-blue-500 hover:to-blue-400",
+    btnText: "text-white",
+    completedBorder: "border-emerald-500/50",
+    completedBg: "bg-emerald-900/10",
+  },
+];
+
+// ─── Path definitions for the quick-claim board ─────────────────────────
 const CLAIM_PATHS = [
   {
     id: "socratic",
@@ -172,15 +287,135 @@ const QuestCard = ({ quest, onComplete, poiBonuses }) => {
 };
 
 // ═══════════════════════════════════════════════════════════════
+//  Guild Bounty Card — premium glowing datapad aesthetic
+// ═══════════════════════════════════════════════════════════════
+const GuildBountyCard = ({ bounty, isCompleted, onClaim }) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <div
+      className={`group relative rounded-2xl border-2 overflow-hidden transition-all duration-500 ${
+        isCompleted
+          ? `${bounty.completedBorder} ${bounty.completedBg} opacity-70`
+          : `${bounty.border} ${bounty.borderHover}`
+      }`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={
+        !isCompleted && isHovered
+          ? { boxShadow: `0 0 30px ${bounty.accentGlow}, 0 0 60px ${bounty.accentGlow.replace("0.25", "0.1")}` }
+          : isCompleted
+          ? { boxShadow: "0 0 20px rgba(16,185,129,0.15)" }
+          : {}
+      }
+    >
+      {/* Animated top accent line */}
+      <div
+        className={`absolute top-0 left-0 right-0 h-0.5 transition-opacity duration-500 ${
+          isCompleted ? "bg-emerald-500/60" : `bg-gradient-to-r ${bounty.btnGradient}`
+        }`}
+      ></div>
+
+      {/* Card body */}
+      <div className={`relative flex flex-col p-4 md:p-5 bg-gradient-to-br ${bounty.gradient}`}>
+        {/* Header: emoji + path badge */}
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center gap-2.5">
+            <div
+              className={`flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br ${bounty.btnGradient} shadow-lg transition-transform duration-300 ${
+                isCompleted ? "scale-90" : isHovered ? "scale-105" : ""
+              }`}
+            >
+              <Icon name={isCompleted ? "check" : bounty.icon} className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <span
+                className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border bg-slate-900/60 ${bounty.accentText} ${
+                  isCompleted ? "border-emerald-700/50 text-emerald-400" : ""
+                }`}
+              >
+                {isCompleted ? "Vollbracht" : bounty.pathLabel}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Title */}
+        <h4
+          className={`text-base md:text-lg font-bold mb-1.5 leading-tight transition-colors duration-300 ${
+            isCompleted ? "text-emerald-300/80 line-through decoration-emerald-500/50" : "text-slate-100"
+          }`}
+        >
+          {bounty.title}
+        </h4>
+
+        {/* Description */}
+        <p
+          className={`text-xs md:text-sm leading-relaxed mb-4 transition-colors duration-300 ${
+            isCompleted ? "text-slate-500" : "text-slate-400"
+          }`}
+        >
+          {bounty.description}
+        </p>
+
+        {/* Reward pill */}
+        <div className="flex items-center gap-1.5 mb-4">
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${
+            isCompleted
+              ? "bg-emerald-900/30 border-emerald-700/40"
+              : `bg-slate-900/60 border-slate-700/40`
+          }`}>
+            <Icon
+              name={bounty.rewardDetail.icon}
+              className={`w-3.5 h-3.5 ${isCompleted ? "text-emerald-400" : bounty.accentText}`}
+            />
+            <span className={`text-xs font-mono font-bold ${
+              isCompleted ? "text-emerald-300" : bounty.accentText
+            }`}>
+              {bounty.rewardText}
+            </span>
+          </div>
+        </div>
+
+        {/* Spacer pushes button to bottom */}
+        <div className="flex-1"></div>
+
+        {/* Claim / Completed button */}
+        {isCompleted ? (
+          <div className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-900/20 border border-emerald-700/30">
+            <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            <span className="text-sm font-bold text-emerald-400">Vollzug gemeldet</span>
+          </div>
+        ) : (
+          <button
+            onClick={() => onClaim(bounty.id)}
+            className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r ${bounty.btnGradient} ${bounty.btnHover} ${bounty.btnText} font-bold text-sm shadow-lg transition-all duration-300 active:scale-[0.97] hover:shadow-xl`}
+          >
+            <Icon name="pen" className="w-4 h-4" />
+            Vollzug melden
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════
 //  Main Quests Component
 // ═══════════════════════════════════════════════════════════════
 const Quests = ({ handleQuestComplete, gameState, claimTat }) => {
   const poiBonuses = gameState?.poiBonuses || { manaRegen: 0, goldRegen: 0, moveRegen: 0 };
   const [claimedNow, setClaimedNow] = useState(null);
+  // Session-level completion tracking for Guild Bounties
+  const [completedBounties, setCompletedBounties] = useState({});
 
   const handleClaim = (pathId) => {
     claimTat(pathId);
     setClaimedNow(pathId);
+    // Mark bounty as completed for this session
+    setCompletedBounties((prev) => ({ ...prev, [pathId]: true }));
     setTimeout(() => setClaimedNow(null), 600);
   };
 
@@ -231,45 +466,92 @@ const Quests = ({ handleQuestComplete, gameState, claimTat }) => {
         </div>
       </div>
 
-      {/* ═══ Buch der Taten: Honor System Claim Board ═══ */}
+      {/* ═══════════════════════════════════════════════════════
+          Gilden-Aufträge: Gleichzeitiges Aufblühen
+          Premium Guild Bounty Cards — session-tracked
+         ═══════════════════════════════════════════════════════ */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xl">⚔️</span>
+          <h3 className="text-base md:text-lg font-bold text-amber-400 uppercase tracking-wider">
+            Gilden-Aufträge
+          </h3>
+          <div className="flex-1 h-px bg-gradient-to-r from-amber-800/40 to-transparent"></div>
+        </div>
+        <p className="text-xs text-slate-500 mb-1 italic font-medium">
+          Gleichzeitiges Aufblühen — Die fünf Pfade zur Meisterschaft
+        </p>
+        <p className="text-[11px] text-slate-600 mb-4">
+          Erledige die Aufgabe in Craft, dann hier auf Ehrenwort eintragen. Belohnung wird sofort gutgeschrieben.
+        </p>
+
+        {/* Responsive grid: 1 col mobile → 2 col tablet → 3 col desktop → 5 col wide */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4">
+          {GUILD_BOUNTIES.map((bounty) => (
+            <GuildBountyCard
+              key={bounty.id}
+              bounty={bounty}
+              isCompleted={!!completedBounties[bounty.id]}
+              onClaim={handleClaim}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* ═══ Buch der Taten: Honor System Quick-Claim Board ═══ */}
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-3">
           <Icon name="pen" className="w-4 h-4 text-amber-500" />
           <h3 className="text-sm font-bold text-amber-400 uppercase tracking-wider">
-            Buch der Taten
+            Schnell-Eintragung
           </h3>
           <div className="flex-1 h-px bg-gradient-to-r from-amber-800/40 to-transparent"></div>
         </div>
         <p className="text-[11px] text-slate-500 mb-3 italic">
-          Aufgabe in Craft erledigt? Hier eintragen — auf Ehrenwort.
+          Aufgabe erledigt? Schnell eintragen — auf Ehrenwort.
         </p>
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-3">
           {CLAIM_PATHS.map((cp) => {
             const isFlashing = claimedNow === cp.id;
+            const isCompleted = completedBounties[cp.id];
             return (
               <button
                 key={cp.id}
-                onClick={() => handleClaim(cp.id)}
-                className={`group relative flex flex-col items-center gap-1.5 p-3 md:p-4 rounded-xl border-2 ${cp.border} ${cp.bg} ${cp.hoverBorder} transition-all duration-300 active:scale-95 ${
-                  isFlashing ? "scale-105 brightness-125" : ""
+                onClick={() => !isCompleted && handleClaim(cp.id)}
+                disabled={isCompleted}
+                className={`group relative flex flex-col items-center gap-1.5 p-3 md:p-4 rounded-xl border-2 transition-all duration-300 ${
+                  isCompleted
+                    ? "border-emerald-700/30 bg-emerald-900/10 opacity-50 cursor-not-allowed"
+                    : `${cp.border} ${cp.bg} ${cp.hoverBorder} active:scale-95 ${isFlashing ? "scale-105 brightness-125" : ""}`
                 }`}
               >
-                {isFlashing && (
+                {isFlashing && !isCompleted && (
                   <div className={`absolute inset-0 rounded-xl bg-gradient-to-br ${cp.gradient} opacity-40 animate-pulse`}></div>
                 )}
-                <div className={`relative p-2 rounded-lg bg-gradient-to-br ${cp.gradient}`}>
-                  <Icon name={cp.icon} className="w-5 h-5 text-white" />
+                {isCompleted && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                )}
+                <div className={`relative p-2 rounded-lg bg-gradient-to-br ${cp.gradient} ${isCompleted ? "opacity-40" : ""}`}>
+                  <Icon name={isCompleted ? "check" : cp.icon} className="w-5 h-5 text-white" />
                 </div>
-                <span className={`relative text-xs font-bold ${cp.text} leading-tight text-center`}>
-                  {cp.taskLabel}
-                </span>
-                <div className="relative flex items-center gap-1">
-                  <Icon name={cp.rewards.icon} className="w-3 h-3 text-slate-400" />
-                  <span className="text-[10px] font-mono text-slate-400">
-                    +{cp.rewards.label}
-                  </span>
-                </div>
+                {!isCompleted && (
+                  <>
+                    <span className={`relative text-xs font-bold ${cp.text} leading-tight text-center`}>
+                      {cp.taskLabel}
+                    </span>
+                    <div className="relative flex items-center gap-1">
+                      <Icon name={cp.rewards.icon} className="w-3 h-3 text-slate-400" />
+                      <span className="text-[10px] font-mono text-slate-400">
+                        +{cp.rewards.label}
+                      </span>
+                    </div>
+                  </>
+                )}
               </button>
             );
           })}
