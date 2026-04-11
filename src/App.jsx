@@ -16,6 +16,9 @@ export default function App() {
     clearDamageEvent,
     getAvailableActions,
     getPoiInfo,
+    addCustomSkill,
+    claimTat,
+    skillTreeData,
     toast,
   } = useGameState();
 
@@ -29,12 +32,18 @@ export default function App() {
         setActiveTab={setActiveTab}
       >
         {activeTab === "tree" && (
-          <SkillTree gameState={gameState} unlockSkill={unlockSkill} />
+          <SkillTree
+            gameState={gameState}
+            unlockSkill={unlockSkill}
+            addCustomSkill={addCustomSkill}
+            skillTreeData={skillTreeData}
+          />
         )}
         {activeTab === "quests" && (
           <Quests
             handleQuestComplete={handleQuestComplete}
             gameState={gameState}
+            claimTat={claimTat}
           />
         )}
         {activeTab === "battle" && (

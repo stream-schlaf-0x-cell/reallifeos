@@ -1,9 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
-import INITIAL_SKILLS from "../data/skills.json";
 import DAILY_BOSSES from "../data/bosses.json";
 import INITIAL_MAP_DATA from "../data/map.json";
 import ATTACKS from "../data/attacks.json";
 import { playLevelUpSound, playUnlockSound, playHitSound } from "../engine/audioEngine";
+import {
+  flattenSkills,
+  LEGACY_SKILL_MAP,
+  SKILL_TREE_DATA,
+} from "../data/skillTreeData";
 
 // ─── Resource Rewards ───────────────────────────────────────────────
 export const getResourceRewards = (path) => {
@@ -76,11 +80,42 @@ const UNCOVER_COST = 10;
 export const useGameState = () => {
   const [gameState, setGameState] = useState(() => {
     const saved = localStorage.getItem("tim_life_rpg");
+    let baseSkills = flattenSkills();
+
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
+        // Migrate legacy unlocked states
+        if (parsed.skills && Array.isArray(parsed.skills)) {
+          parsed.skills.forEach((legacySkill) => {
+            if (legacySkill.unlocked) {
+              const newId = LEGACY_SKILL_MAP[legacySkill.id];
+              if (newId) {
+                const target = baseSkills.find((s) => s.id === newId);
+                if (target) target.unlocked = true;
+              }
+            }
+          });
+        }
+        // Also restore new-format unlocked states if they exist
+        if (parsed.skills && Array.isArray(parsed.skills)) {
+          parsed.skills.forEach((savedSkill) => {
+            if (savedSkill.unlocked && savedSkill.isCustom !== undefined) {
+              // This is a new-format skill
+              const target = baseSkills.find((s) => s.id === savedSkill.id);
+              if (target) {
+                target.unlocked = true;
+              } else if (savedSkill.isCustom) {
+                // Custom skill from a previous session — add it
+                baseSkills.push(savedSkill);
+              }
+            }
+          });
+        }
+
         return {
           ...parsed,
+          skills: baseSkills,
           movementPoints: parsed.movementPoints || 0,
           gold: parsed.gold || 0,
           mana: parsed.mana || 0,
@@ -105,7 +140,7 @@ export const useGameState = () => {
       level: 1,
       xp: 0,
       skillPoints: 0,
-      skills: INITIAL_SKILLS,
+      skills: baseSkills,
       currentBoss: DAILY_BOSSES[0],
       bossHp: DAILY_BOSSES[0].maxHp,
       day: new Date().toLocaleDateString(),
@@ -232,7 +267,9 @@ export const useGameState = () => {
 
         // Skill requirement check
         if (attack.requiresSkill) {
-          const skill = prev.skills.find((s) => s.id === attack.requiresSkill);
+          // Support both legacy IDs (mon_3, soc_3, etc.) and new IDs
+          const checkId = LEGACY_SKILL_MAP[attack.requiresSkill] || attack.requiresSkill;
+          const skill = prev.skills.find((s) => s.id === checkId);
           if (!skill || !skill.unlocked) {
             setTimeout(
               () =>
@@ -456,6 +493,95 @@ export const useGameState = () => {
     return POI_TABLE[tileType] || { label: tileType, icon: "map", bonus: {}, desc: "" };
   }, []);
 
+  // ─── Claim Task (Honor System) ──────────────────────────────────
+  const claimTat = useCallback(
+    (pathId) => {
+      const rewards = getResourceRewards(pathId);
+      const bonuses = recalcPoiBonuses(
+        gameState.mapData?.tiles || INITIAL_MAP_DATA.tiles
+      );
+
+      const totalMove = rewards.move + bonuses.moveRegen;
+      const totalGold = rewards.gold + bonuses.goldRegen;
+      const totalMana = rewards.mana + bonuses.manaRegen;
+
+      // Build reward summary
+      const parts = [];
+      if (totalMove > 0) parts.push(`+${totalMove} MP`);
+      if (totalGold > 0) parts.push(`+${totalGold} Gold`);
+      if (totalMana > 0) parts.push(`+${totalMana} Mana`);
+      const rewardStr = parts.join(", ") || "Nichts";
+
+      const pathNames = {
+        architect: "Architekt",
+        socratic: "Sokratiker",
+        bard: "Barde",
+        monk: "Mönch",
+        acrobat: "Akrobat",
+      };
+
+      const logEntry = `[${new Date().toLocaleTimeString()}] Tat vollbracht (${pathNames[pathId] || pathId}): ${rewardStr}.`;
+
+      setGameState((prev) => ({
+        ...prev,
+        movementPoints: prev.movementPoints + totalMove,
+        gold: prev.gold + totalGold,
+        mana: prev.mana + totalMana,
+        poiBonuses: bonuses,
+        log: [logEntry, ...prev.log].slice(0, 10),
+      }));
+
+      showToast(`Tat eingetragen! ${rewardStr}`, "success");
+    },
+    [gameState.mapData, showToast]
+  );
+
+  // ─── Add Custom Skill ───────────────────────────────────────────
+  const addCustomSkill = useCallback((pathId, tierNumber, skillData) => {
+    // Validate path
+    if (!SKILL_TREE_DATA[pathId]) {
+      showToast(`Unbekannter Pfad: ${pathId}`, "error");
+      return false;
+    }
+
+    // Validate tier
+    const tierKey = Object.keys(SKILL_TREE_DATA[pathId].tiers).find(
+      (k) => SKILL_TREE_DATA[pathId].tiers[k].tierNumber === tierNumber
+    );
+    if (!tierKey) {
+      showToast(`Ungültige Stufe: ${tierNumber}`, "error");
+      return false;
+    }
+
+    // Generate unique ID
+    const id = `custom_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+
+    const newSkill = {
+      id,
+      path: pathId,
+      tier: tierNumber,
+      name: skillData.name,
+      desc: skillData.desc || "Benutzerdefinierter Skill.",
+      icon: skillData.icon || "eye",
+      cost: skillData.cost || 100,
+      unlocked: false,
+      req: skillData.req || [],
+      isCustom: true,
+    };
+
+    setGameState((prev) => ({
+      ...prev,
+      skills: [...prev.skills, newSkill],
+      log: [
+        `[${new Date().toLocaleTimeString()}] Neuer Skill hinzugefügt: ${newSkill.name} (Pfad: ${pathId}, Stufe: ${tierNumber})`,
+        ...prev.log,
+      ].slice(0, 10),
+    }));
+
+    showToast(`Skill "${newSkill.name}" hinzugefügt!`, "success");
+    return newSkill;
+  }, [showToast]);
+
   return {
     gameState,
     setGameState,
@@ -467,6 +593,9 @@ export const useGameState = () => {
     clearDamageEvent,
     getAvailableActions,
     getPoiInfo,
+    addCustomSkill,
+    claimTat,
+    skillTreeData: SKILL_TREE_DATA,
     toast,
     showToast,
   };
