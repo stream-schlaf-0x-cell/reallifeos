@@ -1,7 +1,7 @@
 import React from 'react';
 import Icon from './Icon';
 
-const Header = ({ gameState }) => {
+const Header = ({ gameState, devMode, onToggleDevMode, onOpenLog, gameLocked }) => {
   const requiredXpForNextLevel = Math.floor(
     100 * Math.pow(1.5, gameState.level - 1)
   );
@@ -20,7 +20,7 @@ const Header = ({ gameState }) => {
           </div>
           <div>
             <h1 className="text-xl md:text-2xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-100 to-slate-400">
-              Tim's Second Brain RPG
+              Tim&apos;s Second Brain RPG
             </h1>
             <p className="text-xs md:text-sm text-slate-400">
               Meister der Disziplinen • Ethik & Algorithmen
@@ -70,6 +70,39 @@ const Header = ({ gameState }) => {
               </span>
             </div>
           </div>
+        </div>
+
+        {/* Utility buttons: Log + Dev toggle */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Game locked indicator */}
+          {gameLocked && (
+            <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-900/30 border border-red-700/40" title="Spiel ist gesperrt">
+              <span className="text-sm">🔒</span>
+              <span className="text-[10px] font-bold text-red-400 hidden md:inline">Gesperrt</span>
+            </div>
+          )}
+
+          {/* Activity Log */}
+          <button
+            onClick={onOpenLog}
+            className="p-2 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-400 hover:text-slate-200 hover:border-slate-600 transition-all"
+            title="Aktivitätsprotokoll"
+          >
+            <Icon name="eye" className="w-4 h-4" />
+          </button>
+
+          {/* Dev mode toggle */}
+          <button
+            onClick={onToggleDevMode}
+            className={`p-2 rounded-lg border transition-all ${
+              devMode
+                ? "bg-amber-900/40 border-amber-600/50 text-amber-400"
+                : "bg-slate-800/50 border-slate-700/50 text-slate-500 hover:text-slate-300"
+            }`}
+            title={devMode ? "Dev Mode: AN" : "Dev Mode: AUS"}
+          >
+            <span className="text-sm">🔧</span>
+          </button>
         </div>
       </div>
     </header>

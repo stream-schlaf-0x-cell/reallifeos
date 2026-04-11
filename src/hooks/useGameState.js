@@ -2,12 +2,25 @@ import { useState, useEffect, useCallback } from "react";
 import DAILY_BOSSES from "../data/bosses.json";
 import INITIAL_MAP_DATA from "../data/map.json";
 import ATTACKS from "../data/attacks.json";
+import PRESET_QUESTS from "../data/quests.json";
 import { playLevelUpSound, playUnlockSound, playHitSound } from "../engine/audioEngine";
 import {
   flattenSkills,
   LEGACY_SKILL_MAP,
   SKILL_TREE_DATA,
 } from "../data/skillTreeData";
+import { generateMap, areHexAdjacent } from "../utils/mapGenerator";
+
+// ─── Game Lock Configuration ──────────────────────────────────────
+// Set the date when the game becomes "live" — before this date, game is locked
+// Dev mode can override this for testing
+const GAME_LOCK_DATE = "2026-05-01T00:00:00";
+
+const isGameLocked = () => {
+  const lockDate = new Date(GAME_LOCK_DATE);
+  const now = new Date();
+  return now < lockDate;
+};
 
 // ─── Resource Rewards ───────────────────────────────────────────────
 export const getResourceRewards = (path) => {
@@ -119,7 +132,7 @@ export const useGameState = () => {
           movementPoints: parsed.movementPoints || 0,
           gold: parsed.gold || 0,
           mana: parsed.mana || 0,
-          mapData: parsed.mapData || INITIAL_MAP_DATA,
+          mapData: parsed.mapData || generateMap(4),
           bossHp: parsed.bossHp ?? DAILY_BOSSES[0].maxHp,
           currentBoss: parsed.currentBoss || DAILY_BOSSES[0],
           // Combat extras
@@ -131,6 +144,8 @@ export const useGameState = () => {
           lastDamageType: "",     // "hit" | "crit" | "heal" | "shield"
           poiBonuses: parsed.poiBonuses || { manaRegen: 0, goldRegen: 0, moveRegen: 0 },
           defeatedBosses: parsed.defeatedBosses || [],
+          customQuests: parsed.customQuests || [],
+          log: parsed.log || [],
         };
       } catch {
         // corrupted save – fall through
@@ -145,10 +160,11 @@ export const useGameState = () => {
       bossHp: DAILY_BOSSES[0].maxHp,
       day: new Date().toLocaleDateString(),
       log: [],
+      customQuests: [],
       movementPoints: 0,
       gold: 0,
       mana: 0,
-      mapData: INITIAL_MAP_DATA,
+      mapData: generateMap(4),
       playerShield: 0,
       shieldTurnsLeft: 0,
       combatLog: [],
@@ -161,6 +177,17 @@ export const useGameState = () => {
   });
 
   const [toast, setToast] = useState(null);
+
+  // ─── Enhanced Log Helper ──────────────────────────────────────────
+  const addLogEntry = useCallback((prev, type, message) => {
+    const entry = {
+      timestamp: new Date().toISOString(),
+      time: new Date().toLocaleTimeString(),
+      type, // QUEST, CLAIM, COMBAT, SKILL, MAP, BOSS, LEVEL, SYSTEM
+      message,
+    };
+    return [entry, ...prev.log].slice(0, 100);
+  }, []);
 
   // Persist – strip transient fields
   useEffect(() => {
@@ -203,10 +230,14 @@ export const useGameState = () => {
           );
         }
 
-        return { ...prev, xp: newXp, level: newLevel, skillPoints: newPoints };
+        const newState = { ...prev, xp: newXp, level: newLevel, skillPoints: newPoints };
+        if (leveledUp) {
+          newState.log = addLogEntry(prev, "LEVEL", `Level Up! Jetzt Level ${newLevel}. +150 SP.`);
+        }
+        return newState;
       });
     },
-    [showToast]
+    [showToast, addLogEntry]
   );
 
   // ─── POI Bonus helper ───────────────────────────────────────────
@@ -234,7 +265,9 @@ export const useGameState = () => {
         const totalGold = baseRewards.gold + bonuses.goldRegen;
         const totalMana = baseRewards.mana + bonuses.manaRegen;
 
-        const logEntry = `[${new Date().toLocaleTimeString()}] Quest: ${quest.name} | +${quest.xp} XP, +${totalMove} MP, +${totalGold} Gold, +${totalMana} Mana.`;
+        const updatedQuests = (prev.customQuests || []).map((q) =>
+          q.id === quest.id ? { ...q, completed: true, completedAt: new Date().toISOString() } : q
+        );
 
         return {
           ...prev,
@@ -242,14 +275,15 @@ export const useGameState = () => {
           gold: prev.gold + totalGold,
           mana: prev.mana + totalMana,
           poiBonuses: bonuses,
-          log: [logEntry, ...prev.log].slice(0, 10),
+          customQuests: updatedQuests,
+          log: addLogEntry(prev, "QUEST", `Quest: "${quest.name}" | +${quest.xp} XP, +${totalMove} MP, +${totalGold} Gold, +${totalMana} Mana.`),
         };
       });
 
       addXp(quest.xp);
       showToast(`Ressourcen erhalten! +${quest.xp} XP`, "success");
     },
-    [addXp, showToast]
+    [addXp, showToast, addLogEntry]
   );
 
   // ─── Execute Attack / Ability ───────────────────────────────────
@@ -334,11 +368,7 @@ export const useGameState = () => {
               `Naechster: ${nextBoss.name}`,
               ...prev.combatLog,
             ].slice(0, 30),
-            log: [
-              logEntry,
-              `🔥 Boss ${prev.currentBoss.name} besiegt! +100 Bonus XP!`,
-              ...prev.log,
-            ].slice(0, 10),
+            log: addLogEntry(prev, "BOSS", `Boss "${prev.currentBoss.name}" besiegt! +100 Bonus XP. Naechster: ${nextBoss.name}`),
             lastDamageAmount: dmg,
             lastDamageType: attack.type === "crit" ? "crit" : "hit",
             defeatedBosses: defeatedList,
@@ -353,7 +383,7 @@ export const useGameState = () => {
           playerShield: newShield,
           shieldTurnsLeft: newShieldTurns,
           combatLog: [logEntry, ...prev.combatLog].slice(0, 30),
-          log: [logEntry, ...prev.log].slice(0, 10),
+          log: addLogEntry(prev, "COMBAT", logEntry),
           lastDamageAmount: dmg,
           lastDamageType:
             attack.type === "shield"
@@ -376,7 +406,7 @@ export const useGameState = () => {
         showToast(`Schild: +${attack.shield} HP Block für ${attack.shieldDuration} Züge`, "success");
       }
     },
-    [showToast]
+    [showToast, addLogEntry]
   );
 
   // ─── Unlock Skill ───────────────────────────────────────────────
@@ -407,15 +437,12 @@ export const useGameState = () => {
         skills: prev.skills.map((s) =>
           s.id === skillId ? { ...s, unlocked: true } : s
         ),
-        log: [
-          `[${new Date().toLocaleTimeString()}] Skill freigeschaltet: ${skill.name}`,
-          ...prev.log,
-        ].slice(0, 10),
+        log: addLogEntry(prev, "SKILL", `Skill freigeschaltet: "${skill.name}" (-${skill.cost} SP)`),
       }));
       showToast(`Skill freigeschaltet: ${skill.name}!`, "success");
       return true;
     },
-    [gameState.skills, gameState.skillPoints, showToast]
+    [gameState.skills, gameState.skillPoints, showToast, addLogEntry]
   );
 
   // ─── Uncover Map Tile ───────────────────────────────────────────
@@ -434,6 +461,18 @@ export const useGameState = () => {
         const tile = newTiles[tileIndex];
         if (tile.discovered) return prev;
 
+        // Check adjacency — must be adjacent to at least one discovered tile
+        const hasAdjacentDiscovered = newTiles.some(
+          (t, i) => t.discovered && i !== tileIndex && areHexAdjacent(t, tile)
+        );
+        if (!hasAdjacentDiscovered) {
+          setTimeout(
+            () => showToast("Zu weit entfernt! Nur benachbarte Felder möglich.", "error"),
+            0
+          );
+          return prev;
+        }
+
         newTiles[tileIndex] = { ...tile, discovered: true };
 
         const bonuses = recalcPoiBonuses(newTiles);
@@ -441,9 +480,9 @@ export const useGameState = () => {
         let extraLog = `Tile entdeckt: ${poi?.label || tile.type}.`;
         let ambushTriggered = false;
 
-        // Check for ambush
-        if (poi?.ambush) {
-          extraLog += " ⚠️ HINTERHALT!";
+        // Check for map boss on wilds tile
+        if (tile.mapBoss && !tile.mapBoss.defeated) {
+          extraLog += " ⚠️ MAP BOSS: " + tile.mapBoss.name + "!";
           ambushTriggered = true;
         }
 
@@ -453,18 +492,15 @@ export const useGameState = () => {
           mapData: { ...prev.mapData, tiles: newTiles },
           poiBonuses: bonuses,
           combatLog: ambushTriggered
-            ? [`⚠️ Hinterhalt auf ${tile.name}! Kampf beginnt!`, ...prev.combatLog].slice(0, 30)
+            ? [`⚠️ Map Boss auf ${tile.name}: ${tile.mapBoss.name}!`, ...prev.combatLog].slice(0, 30)
             : prev.combatLog,
-          log: [
-            `[${new Date().toLocaleTimeString()}] ${extraLog} -${UNCOVER_COST} MP.`,
-            ...prev.log,
-          ].slice(0, 10),
+          log: addLogEntry(prev, "MAP", `${extraLog} -${UNCOVER_COST} MP.`),
         };
       });
 
       showToast("Neues Gebiet entdeckt!", "success");
     },
-    [showToast]
+    [showToast, addLogEntry]
   );
 
   // ─── Clear damage animation trigger (called by BattleArena after anim) ─
@@ -520,20 +556,18 @@ export const useGameState = () => {
         acrobat: "Akrobat",
       };
 
-      const logEntry = `[${new Date().toLocaleTimeString()}] Tat vollbracht (${pathNames[pathId] || pathId}): ${rewardStr}.`;
-
       setGameState((prev) => ({
         ...prev,
         movementPoints: prev.movementPoints + totalMove,
         gold: prev.gold + totalGold,
         mana: prev.mana + totalMana,
         poiBonuses: bonuses,
-        log: [logEntry, ...prev.log].slice(0, 10),
+        log: addLogEntry(prev, "CLAIM", `Tat vollbracht (${pathNames[pathId] || pathId}): ${rewardStr}.`),
       }));
 
       showToast(`Tat eingetragen! ${rewardStr}`, "success");
     },
-    [gameState.mapData, showToast]
+    [gameState.mapData, showToast, addLogEntry]
   );
 
   // ─── Add Custom Skill ───────────────────────────────────────────
@@ -572,15 +606,178 @@ export const useGameState = () => {
     setGameState((prev) => ({
       ...prev,
       skills: [...prev.skills, newSkill],
-      log: [
-        `[${new Date().toLocaleTimeString()}] Neuer Skill hinzugefügt: ${newSkill.name} (Pfad: ${pathId}, Stufe: ${tierNumber})`,
-        ...prev.log,
-      ].slice(0, 10),
+      log: addLogEntry(prev, "SKILL", `Neuer Skill hinzugefügt: "${newSkill.name}" (Pfad: ${pathId}, Stufe: ${tierNumber})`),
     }));
 
     showToast(`Skill "${newSkill.name}" hinzugefügt!`, "success");
     return newSkill;
+  }, [showToast, addLogEntry]);
+
+  // ─── Add Custom Quest ───────────────────────────────────────────
+  const addCustomQuest = useCallback((questData) => {
+    const id = `custom_quest_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const newQuest = {
+      id,
+      name: questData.name,
+      path: questData.path,
+      xp: questData.xp || 30,
+      description: questData.description || "",
+      isCustom: true,
+      completed: false,
+      createdAt: new Date().toISOString(),
+    };
+
+    setGameState((prev) => {
+      const existingCustom = prev.customQuests || [];
+      return {
+        ...prev,
+        customQuests: [...existingCustom, newQuest],
+        log: addLogEntry(prev, "SYSTEM", `Neue Quest erstellt: "${newQuest.name}" (${newQuest.path}, ${newQuest.xp} XP)`),
+      };
+    });
+
+    showToast(`Quest "${newQuest.name}" erstellt!`, "success");
+    return newQuest;
+  }, [showToast, addLogEntry]);
+
+  // ─── Delete Custom Quest ────────────────────────────────────────
+  const deleteCustomQuest = useCallback((questId) => {
+    setGameState((prev) => ({
+      ...prev,
+      customQuests: (prev.customQuests || []).filter((q) => q.id !== questId),
+    }));
+    showToast("Quest gelöscht.", "info");
   }, [showToast]);
+
+  // ─── Defeat Map Boss ────────────────────────────────────────────
+  const defeatMapBoss = useCallback((tileIndex) => {
+    setGameState((prev) => {
+      const newTiles = [...prev.mapData.tiles];
+      const tile = newTiles[tileIndex];
+      if (!tile || !tile.mapBoss || tile.mapBoss.defeated) return prev;
+
+      const levelBonus = Math.max(0, prev.level - 1) * 20;
+      const bonusXp = 50 + levelBonus;
+      const bonusGold = 20 + prev.level * 5;
+      const bonusMana = 15 + prev.level * 3;
+
+      newTiles[tileIndex] = {
+        ...tile,
+        mapBoss: { ...tile.mapBoss, defeated: true },
+      };
+
+      return {
+        ...prev,
+        mapData: { ...prev.mapData, tiles: newTiles },
+        gold: prev.gold + bonusGold,
+        mana: prev.mana + bonusMana,
+        log: addLogEntry(prev, "BOSS", `Map Boss "${tile.mapBoss.name}" auf ${tile.name} besiegt! +${bonusXp} XP, +${bonusGold} Gold, +${bonusMana} Mana.`),
+      };
+    });
+
+    addXp(50 + Math.max(0, (gameState.level || 1) - 1) * 20);
+    showToast("Map Boss besiegt!", "success");
+  }, [showToast, addXp, addLogEntry, gameState.level]);
+
+  // ─── Dev Actions ────────────────────────────────────────────────
+  const devResetAll = useCallback(() => {
+    localStorage.removeItem("tim_life_rpg");
+    window.location.reload();
+  }, []);
+
+  const devSetLevel = useCallback((level) => {
+    setGameState((prev) => ({
+      ...prev,
+      level,
+      xp: 0,
+      skillPoints: prev.skillPoints + (level - prev.level) * 150,
+      log: addLogEntry(prev, "SYSTEM", `[DEV] Level auf ${level} gesetzt.`),
+    }));
+    showToast(`Level auf ${level} gesetzt.`, "info");
+  }, [showToast, addLogEntry]);
+
+  const devSetResources = useCallback((resources) => {
+    setGameState((prev) => {
+      const updated = { ...prev };
+      if (resources.skillPoints !== undefined) updated.skillPoints = resources.skillPoints;
+      if (resources.gold !== undefined) updated.gold = resources.gold;
+      if (resources.mana !== undefined) updated.mana = resources.mana;
+      if (resources.movementPoints !== undefined) updated.movementPoints = resources.movementPoints;
+      updated.log = addLogEntry(prev, "SYSTEM", `[DEV] Ressourcen gesetzt: ${JSON.stringify(resources)}`);
+      return updated;
+    });
+    showToast("Ressourcen aktualisiert.", "info");
+  }, [showToast, addLogEntry]);
+
+  const devAddXp = useCallback((amount) => {
+    addXp(amount);
+    showToast(`+${amount} XP (DEV)`, "info");
+  }, [addXp, showToast]);
+
+  const devUnlockAllSkills = useCallback(() => {
+    setGameState((prev) => ({
+      ...prev,
+      skills: prev.skills.map((s) => ({ ...s, unlocked: true })),
+      log: addLogEntry(prev, "SYSTEM", "[DEV] Alle Skills freigeschaltet."),
+    }));
+    showToast("Alle Skills freigeschaltet!", "info");
+  }, [showToast, addLogEntry]);
+
+  const devRevealAllTiles = useCallback(() => {
+    setGameState((prev) => {
+      const newTiles = prev.mapData.tiles.map((t) => ({ ...t, discovered: true }));
+      const bonuses = recalcPoiBonuses(newTiles);
+      return {
+        ...prev,
+        mapData: { ...prev.mapData, tiles: newTiles },
+        poiBonuses: bonuses,
+        log: addLogEntry(prev, "SYSTEM", "[DEV] Alle Kartenfelder aufgedeckt."),
+      };
+    });
+    showToast("Alle Kartenfelder aufgedeckt!", "info");
+  }, [showToast, addLogEntry]);
+
+  const devDefeatBoss = useCallback(() => {
+    setGameState((prev) => {
+      const bossIndex = DAILY_BOSSES.findIndex((b) => b.id === prev.currentBoss.id);
+      const nextBossIndex = (bossIndex + 1) % DAILY_BOSSES.length;
+      const nextBoss = DAILY_BOSSES[nextBossIndex];
+      const defeatedList = [...(prev.defeatedBosses || []), prev.currentBoss.id];
+      return {
+        ...prev,
+        bossHp: nextBoss.maxHp,
+        currentBoss: nextBoss,
+        defeatedBosses: defeatedList,
+        log: addLogEntry(prev, "SYSTEM", `[DEV] Boss "${prev.currentBoss.name}" besiegt.`),
+      };
+    });
+    showToast("Boss besiegt! (DEV)", "info");
+  }, [showToast, addLogEntry]);
+
+  // ─── Game Lock State ────────────────────────────────────────────
+  const [gameLocked, setGameLocked] = useState(() => {
+    // Dev mode overrides lock
+    const devMode = localStorage.getItem("tim_life_rpg_dev") === "true";
+    if (devMode) return false;
+    return isGameLocked();
+  });
+
+  const [devMode, setDevMode] = useState(() => {
+    return localStorage.getItem("tim_life_rpg_dev") === "true";
+  });
+
+  const toggleDevMode = useCallback(() => {
+    setDevMode((prev) => {
+      const newVal = !prev;
+      localStorage.setItem("tim_life_rpg_dev", String(newVal));
+      if (newVal) {
+        setGameLocked(false);
+      } else {
+        setGameLocked(isGameLocked());
+      }
+      return newVal;
+    });
+  }, []);
 
   return {
     gameState,
@@ -594,9 +791,24 @@ export const useGameState = () => {
     getAvailableActions,
     getPoiInfo,
     addCustomSkill,
+    addCustomQuest,
+    deleteCustomQuest,
+    defeatMapBoss,
     claimTat,
     skillTreeData: SKILL_TREE_DATA,
     toast,
     showToast,
+    // Dev actions
+    devResetAll,
+    devSetLevel,
+    devSetResources,
+    devAddXp,
+    devUnlockAllSkills,
+    devRevealAllTiles,
+    devDefeatBoss,
+    // Lock / dev mode
+    gameLocked,
+    devMode,
+    toggleDevMode,
   };
 };

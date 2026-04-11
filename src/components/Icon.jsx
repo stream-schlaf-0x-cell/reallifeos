@@ -218,6 +218,14 @@ const Icon = ({ name, className = "w-6 h-6" }) => {
         d="M13 5l7 7-7 7M5 5l7 7-7 7"
       />
     ),
+    check: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2.5}
+        d="M5 13l4 4L19 7"
+      />
+    ),
   };
 
   return (

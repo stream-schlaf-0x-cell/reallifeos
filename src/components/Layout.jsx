@@ -3,7 +3,7 @@ import { useParticles } from "../engine/particleEngine";
 import Header from "./Header";
 import Navigation from "./Navigation";
 
-const Layout = ({ gameState, activeTab, setActiveTab, children }) => {
+const Layout = ({ gameState, activeTab, setActiveTab, devMode, onToggleDevMode, onOpenLog, gameLocked, children }) => {
   const canvasRef = useRef(null);
   useParticles(canvasRef);
 
@@ -15,7 +15,13 @@ const Layout = ({ gameState, activeTab, setActiveTab, children }) => {
       />
 
       <div className="relative z-10 max-w-7xl mx-auto p-4 md:p-8 flex flex-col h-[100dvh] w-full">
-        <Header gameState={gameState} />
+        <Header
+          gameState={gameState}
+          devMode={devMode}
+          onToggleDevMode={onToggleDevMode}
+          onOpenLog={onOpenLog}
+          gameLocked={gameLocked}
+        />
 
         {/* Desktop Navigation */}
         <div className="hidden md:block mb-6 shrink-0">
