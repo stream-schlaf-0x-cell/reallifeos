@@ -5,7 +5,9 @@
     "desc": "Zertrümmere Illusionen durch reine Logik.",
     "cost": { "mana": 10, "gold": 0 },
     "dmg": 50,
-    "path": "socratic"
+    "type": "attack",
+    "path": "socratic",
+    "requiresSkill": null
   },
   {
     "id": "att_2",
@@ -13,7 +15,9 @@
     "desc": "Löst technische Schulden auf.",
     "cost": { "mana": 5, "gold": 15 },
     "dmg": 60,
-    "path": "architect"
+    "type": "attack",
+    "path": "architect",
+    "requiresSkill": null
   },
   {
     "id": "att_3",
@@ -21,7 +25,9 @@
     "desc": "Mächtiger Sub-Bass-Angriff.",
     "cost": { "mana": 20, "gold": 0 },
     "dmg": 80,
-    "path": "bard"
+    "type": "attack",
+    "path": "bard",
+    "requiresSkill": null
   },
   {
     "id": "att_4",
@@ -29,7 +35,9 @@
     "desc": "Ein sanfter, aber durchdringender Strahl der Klarheit.",
     "cost": { "mana": 0, "gold": 25 },
     "dmg": 45,
-    "path": "monk"
+    "type": "attack",
+    "path": "monk",
+    "requiresSkill": null
   },
   {
     "id": "att_5",
@@ -37,6 +45,84 @@
     "desc": "Explosiver Angriff aus der Bewegung.",
     "cost": { "mana": 15, "gold": 10 },
     "dmg": 70,
-    "path": "acrobat"
+    "type": "attack",
+    "path": "acrobat",
+    "requiresSkill": null
+  },
+  {
+    "id": "att_6",
+    "name": "Tibetischer Schutzschild",
+    "desc": "Errichte eine mentale Barriere. Blockt 40 Schaden für 3 Züge.",
+    "cost": { "mana": 25, "gold": 0 },
+    "dmg": 0,
+    "shield": 40,
+    "shieldDuration": 3,
+    "type": "shield",
+    "path": "monk",
+    "requiresSkill": "mon_3"
+  },
+  {
+    "id": "att_7",
+    "name": "Qi Gong Heilung",
+    "desc": "Stelle 30 Boss-HP wieder her... warte, heile dich selbst! Reduziere Boss-HP um 30.",
+    "cost": { "mana": 30, "gold": 0 },
+    "dmg": 30,
+    "type": "attack",
+    "path": "monk",
+    "requiresSkill": "mon_2"
+  },
+  {
+    "id": "att_8",
+    "name": "Germanistik Kritischer Schlag",
+    "desc": "Verwende akademisches Wissen für einen vernichtenden Kritischen Treffer! 2.5x Schaden.",
+    "cost": { "mana": 0, "gold": 40 },
+    "dmg": 120,
+    "type": "crit",
+    "path": "socratic",
+    "requiresSkill": "soc_3"
+  },
+  {
+    "id": "att_9",
+    "name": "UADx Mastering Bass-Drop",
+    "desc": "Ein frequenz-perfekter Bass-Drop. Ignoriert 50% der Rüstung.",
+    "cost": { "mana": 35, "gold": 0 },
+    "dmg": 100,
+    "type": "attack",
+    "path": "bard",
+    "requiresSkill": "bar_5"
+  },
+  {
+    "id": "att_10",
+    "name": "Dify KI-Analyse",
+    "desc": "Schwachstellen-Scan. nexter Angriff kostet 50% weniger.",
+    "cost": { "mana": 15, "gold": 10 },
+    "dmg": 35,
+    "type": "attack",
+    "path": "architect",
+    "requiresSkill": "arc_4"
+  },
+  {
+    "id": "att_11",
+    "name": "Geist-Körper-Kombo",
+    "desc": "Perfekte Symbiose. +60 DMG und +10 MP refundiert.",
+    "cost": { "mana": 10, "gold": 10 },
+    "dmg": 60,
+    "refundMove": 10,
+    "type": "attack",
+    "path": "acrobat",
+    "requiresSkill": "acr_4"
+  },
+  {
+    "id": "att_12",
+    "name": "Kavita Wissensschild",
+    "desc": "Bibliothek des Wissens. Blockt 25 Schaden, reflektiert 15 DMG.",
+    "cost": { "mana": 10, "gold": 20 },
+    "dmg": 15,
+    "shield": 25,
+    "shieldDuration": 3,
+    "reflect": 15,
+    "type": "shield",
+    "path": "architect",
+    "requiresSkill": "arc_3"
   }
 ]

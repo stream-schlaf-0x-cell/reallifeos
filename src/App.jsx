@@ -13,23 +13,50 @@ export default function App() {
     executeAttack,
     unlockSkill,
     uncoverTile,
-    toast
+    clearDamageEvent,
+    getAvailableActions,
+    getPoiInfo,
+    toast,
   } = useGameState();
 
   const [activeTab, setActiveTab] = useState("tree");
 
   return (
     <>
-      <Layout gameState={gameState} activeTab={activeTab} setActiveTab={setActiveTab}>
-        {activeTab === "tree" && <SkillTree gameState={gameState} unlockSkill={unlockSkill} />}
-        {activeTab === "quests" && <Quests gameState={gameState} handleQuestComplete={handleQuestComplete} />}
-        {activeTab === "battle" && <BattleArena gameState={gameState} executeAttack={executeAttack} />}
-        {activeTab === "map" && <WorldMap gameState={gameState} uncoverTile={uncoverTile} />}
+      <Layout
+        gameState={gameState}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+      >
+        {activeTab === "tree" && (
+          <SkillTree gameState={gameState} unlockSkill={unlockSkill} />
+        )}
+        {activeTab === "quests" && (
+          <Quests
+            handleQuestComplete={handleQuestComplete}
+            gameState={gameState}
+          />
+        )}
+        {activeTab === "battle" && (
+          <BattleArena
+            gameState={gameState}
+            executeAttack={executeAttack}
+            getAvailableActions={getAvailableActions}
+            clearDamageEvent={clearDamageEvent}
+          />
+        )}
+        {activeTab === "map" && (
+          <WorldMap
+            gameState={gameState}
+            uncoverTile={uncoverTile}
+            getPoiInfo={getPoiInfo}
+          />
+        )}
       </Layout>
 
       {toast && (
         <div
-          className={`fixed bottom-20 md:bottom-8 left-1/2 -translate-x-1/2 px-4 md:px-6 py-2 md:py-3 rounded-full font-bold shadow-2xl z-50 animate-in slide-in-from-bottom-4 text-sm md:text-base whitespace-nowrap ${
+          className={`fixed bottom-20 md:bottom-8 left-1/2 -translate-x-1/2 px-4 md:px-6 py-2 md:py-3 rounded-full font-bold shadow-2xl z-50 text-sm md:text-base whitespace-nowrap transition-all duration-300 ${
             toast.type === "error"
               ? "bg-red-600 text-white"
               : toast.type === "success"
