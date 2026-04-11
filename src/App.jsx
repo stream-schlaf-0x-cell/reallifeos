@@ -22,7 +22,7 @@ export default function App() {
     <>
       <Layout gameState={gameState} activeTab={activeTab} setActiveTab={setActiveTab}>
         {activeTab === "tree" && <SkillTree gameState={gameState} unlockSkill={unlockSkill} />}
-        {activeTab === "quests" && <Quests handleQuestComplete={handleQuestComplete} />}
+        {activeTab === "quests" && <Quests gameState={gameState} handleQuestComplete={handleQuestComplete} />}
         {activeTab === "battle" && <BattleArena gameState={gameState} executeAttack={executeAttack} />}
         {activeTab === "map" && <WorldMap gameState={gameState} uncoverTile={uncoverTile} />}
       </Layout>
