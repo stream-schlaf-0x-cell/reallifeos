@@ -189,8 +189,18 @@ export const useGameState = () => {
     return worldState.getAvailableActions(unlockedSkillIds);
   };
 
-  const getPoiInfo = (tileIndex) => {
-    return worldState.getPoiInfo(tileIndex);
+  const getPoiInfo = (tileType) => {
+    // tileType is a string like "monastery", "academy", etc.
+    const POI_TABLE = {
+      monastery: { label: 'Kloster', icon: 'lotus', bonus: { manaRegen: 2 }, desc: '+2 Mana pro Quest' },
+      academy: { label: 'Akademie', icon: 'book', bonus: { goldRegen: 3 }, desc: '+3 Gold pro Quest' },
+      gym: { label: 'Trainingslager', icon: 'activity', bonus: { moveRegen: 3 }, desc: '+3 MP pro Quest' },
+      studio: { label: 'Studio', icon: 'music', bonus: { manaRegen: 1, goldRegen: 1 }, desc: '+1 Mana & +1 Gold pro Quest' },
+      server: { label: 'Server-Farm', icon: 'server', bonus: { goldRegen: 2, moveRegen: 1 }, desc: '+2 Gold & +1 MP pro Quest' },
+      wilds: { label: 'Wildnis', icon: 'zap', bonus: {}, ambush: true, desc: '⚠️ Hinterhalt! Ein Kampf beginnt!' },
+      nexus: { label: 'Nexus', icon: 'brain', bonus: { manaRegen: 1, goldRegen: 1, moveRegen: 1 }, desc: '+1 Alle Ressourcen pro Quest' },
+    };
+    return POI_TABLE[tileType] || { label: tileType, icon: 'map', bonus: {}, desc: '' };
   };
 
   const addCustomSkill = (pathId, tier, skillData) => {
