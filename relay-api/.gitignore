@@ -1,0 +1,12 @@
+# Environment (contains secrets)
+.env
+
+# Dependencies
+node_modules/
+
+# Runtime data (populated at runtime from shared volume)
+data/assets/*.png
+data/*.bak
+
+# Logs
+*.log

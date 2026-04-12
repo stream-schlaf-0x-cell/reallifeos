@@ -1,0 +1,46 @@
+[
+  {
+    "id": 1,
+    "name": "Prokrastinations-Drache",
+    "title": "Der Aufschieber",
+    "maxHp": 200,
+    "minHp": 150,
+    "avatar": "🐉",
+    "abilities": ["Aufschub", "Ablenkung"],
+    "lore": "Ein Drache, der dich von allem Wichtigen abhält.",
+    "rewards": { "xp": 50, "gold": 20, "mana": 10 }
+  },
+  {
+    "id": 2,
+    "name": "Zweifels-Golem",
+    "title": "Der innere Kritiker",
+    "maxHp": 250,
+    "minHp": 180,
+    "avatar": "🗿",
+    "abilities": ["Selbstzweifel", "Imposter Syndrom"],
+    "lore": "Ein Golem aus allen Zweifeln, die du je hattest.",
+    "rewards": { "xp": 60, "gold": 25, "mana": 15 }
+  },
+  {
+    "id": 3,
+    "name": "Chaos-Hydra",
+    "title": "Der Unorganisierte",
+    "maxHp": 300,
+    "minHp": 220,
+    "avatar": "🐍",
+    "abilities": ["Multitasking", "Chaos-Sturm"],
+    "lore": "Für jede erledigte Aufgabe wachsen zwei neue nach.",
+    "rewards": { "xp": 70, "gold": 30, "mana": 20 }
+  },
+  {
+    "id": 4,
+    "name": "Burnout-Phönix",
+    "title": "Der Erschöpfte",
+    "maxHp": 280,
+    "minHp": 200,
+    "avatar": "🔥",
+    "abilities": ["Erschöpfung", "Wiederauferstehung"],
+    "lore": "Steigt immer wieder auf – achte auf deine Grenzen.",
+    "rewards": { "xp": 80, "gold": 35, "mana": 25 }
+  }
+]

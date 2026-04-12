@@ -1,0 +1,134 @@
+[
+  {
+    "id": 1,
+    "name": "Basis-Angriff",
+    "dmg": 15,
+    "type": "attack",
+    "cost": { "mana": 0, "gold": 0 },
+    "requiresSkill": null,
+    "shield": 0,
+    "shieldDuration": 3,
+    "desc": "Ein einfacher Angriff ohne Kosten."
+  },
+  {
+    "id": 2,
+    "name": "Kritischer Schlag",
+    "dmg": 20,
+    "type": "crit",
+    "cost": { "mana": 5, "gold": 0 },
+    "requiresSkill": null,
+    "shield": 0,
+    "shieldDuration": 3,
+    "desc": "Ein kräftiger Schlag mit kritischem Potenzial."
+  },
+  {
+    "id": 3,
+    "name": "Schild-Form",
+    "dmg": 5,
+    "type": "shield",
+    "cost": { "mana": 10, "gold": 0 },
+    "requiresSkill": null,
+    "shield": 20,
+    "shieldDuration": 3,
+    "desc": "Reduziert den nächsten eingehenden Schaden."
+  },
+  {
+    "id": 4,
+    "name": "Gold-Hammer",
+    "dmg": 30,
+    "type": "attack",
+    "cost": { "mana": 0, "gold": 10 },
+    "requiresSkill": null,
+    "shield": 0,
+    "shieldDuration": 3,
+    "desc": "Wirf Gold auf den Feind. Teuer, aber effektiv."
+  },
+  {
+    "id": 5,
+    "name": "Mana-Blitz",
+    "dmg": 25,
+    "type": "crit",
+    "cost": { "mana": 15, "gold": 0 },
+    "requiresSkill": null,
+    "shield": 0,
+    "shieldDuration": 3,
+    "desc": "Ein elektrisierender Mana-Angriff."
+  },
+  {
+    "id": 6,
+    "name": "Sokratische Widerlegung",
+    "dmg": 35,
+    "type": "crit",
+    "cost": { "mana": 20, "gold": 5 },
+    "requiresSkill": "soc_deep_reading",
+    "shield": 0,
+    "shieldDuration": 3,
+    "desc": "Zerlege die Argumente des Feindes."
+  },
+  {
+    "id": 7,
+    "name": "Bass-Drop",
+    "dmg": 40,
+    "type": "crit",
+    "cost": { "mana": 25, "gold": 0 },
+    "requiresSkill": "bar_yrrpheus",
+    "shield": 0,
+    "shieldDuration": 3,
+    "desc": "Ein gewaltiger Bass-Drop erschüttert den Feind."
+  },
+  {
+    "id": 8,
+    "name": "Schatten-Bann",
+    "dmg": 30,
+    "type": "attack",
+    "cost": { "mana": 15, "gold": 10 },
+    "requiresSkill": "mon_schatten",
+    "shield": 15,
+    "shieldDuration": 2,
+    "desc": "Banne deine dunklen Impulse und schütze dich."
+  },
+  {
+    "id": 9,
+    "name": "Flow-Art-Kombination",
+    "dmg": 45,
+    "type": "crit",
+    "cost": { "mana": 10, "gold": 15 },
+    "requiresSkill": "acr_flow_master",
+    "shield": 0,
+    "shieldDuration": 3,
+    "desc": "Eine meisterhafte Jonglage der Zerstörung."
+  },
+  {
+    "id": 10,
+    "name": "Server-Überlastung",
+    "dmg": 35,
+    "type": "attack",
+    "cost": { "mana": 20, "gold": 20 },
+    "requiresSkill": "arc_auto",
+    "shield": 0,
+    "shieldDuration": 3,
+    "desc": "Lass den Server die Arbeit machen."
+  },
+  {
+    "id": 11,
+    "name": "Ultimativer Schild",
+    "dmg": 10,
+    "type": "shield",
+    "cost": { "mana": 30, "gold": 0 },
+    "requiresSkill": "mon_bodhicitta",
+    "shield": 50,
+    "shieldDuration": 3,
+    "desc": "Erleuchteter Schutz."
+  },
+  {
+    "id": 12,
+    "name": "Architekten-Fokus",
+    "dmg": 50,
+    "type": "crit",
+    "cost": { "mana": 25, "gold": 25 },
+    "requiresSkill": "arc_interface",
+    "shield": 0,
+    "shieldDuration": 3,
+    "desc": "Kristallklarer Fokus – tödlich präzise."
+  }
+]

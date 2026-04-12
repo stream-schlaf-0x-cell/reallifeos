@@ -79,4 +79,19 @@ export default defineConfig({
       },
     }),
   ],
+  // ─── Dev Server Proxy ───────────────────────────────────────────────
+  // Forwards /api/ai/* requests to the local relay-api server during development.
+  // In production (Docker), the React app and relay-api share the same network.
+  server: {
+    proxy: {
+      '/api/ai': {
+        target: 'http://localhost:3100',
+        changeOrigin: true,
+      },
+      '/data': {
+        target: 'http://localhost:3100',
+        changeOrigin: true,
+      },
+    },
+  },
 })

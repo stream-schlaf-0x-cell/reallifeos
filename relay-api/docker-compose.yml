@@ -1,0 +1,85 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# RealLifeOS — Docker Compose
+#
+# Two services:
+#   1. relay-api  — Node.js Express server (The Bridge to Dify AI)
+#   2. web        — React/Vite production build (the game frontend)
+#
+# Both services share the same data volume so the Relay API writes JSON files
+# that the React app reads via fetch('/data/*.json').
+# ═══════════════════════════════════════════════════════════════════════════
+
+services:
+  # ── Relay API (The Bridge) ────────────────────────────────────────────────
+  relay-api:
+    build:
+      context: ./relay-api
+      dockerfile: Dockerfile
+    container_name: reallifeos-relay-api
+    restart: unless-stopped
+    env_file:
+      - ./relay-api/.env
+    environment:
+      - NODE_ENV=production
+      - PORT=3100
+    ports:
+      - "3100:3100"
+    volumes:
+      # ════════════════════════════════════════════════════════════════════
+      # SHARED DATA VOLUME — The heart of "Evolve Without Recompiling"
+      # The Relay API writes generated JSON files here.
+      # The React web app reads from this same directory.
+      # ════════════════════════════════════════════════════════════════════
+      - ./RealLifeOS_Data:/app/data
+    networks:
+      - reallifeos-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3100/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ── Web Frontend (React/Vite) ────────────────────────────────────────────
+  # Uncomment and adjust this service to serve the React app via Nginx.
+  # Alternatively, run the React app directly with `npm run preview`.
+  #
+  # web:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.web
+  #   container_name: reallifeos-web
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8080:80"
+  #   volumes:
+  #     # Mount the SAME data directory so the React app can read generated files
+  #     - ./RealLifeOS_Data:/usr/share/nginx/html/data
+  #   depends_on:
+  #     - relay-api
+  #   networks:
+  #     - reallifeos-network
+
+# ── Network ──────────────────────────────────────────────────────────────────
+networks:
+  reallifeos-network:
+    driver: bridge
+
+# ── Volume Note ──────────────────────────────────────────────────────────────
+# The ./RealLifeOS_Data directory is a bind mount (not a named volume).
+# This means:
+#   - On the host (Windows): C:\path\to\project\RealLifeOS_Data
+#   - In relay-api container: /app/data/
+#   - In web container: /usr/share/nginx/html/data/
+#
+# Structure on host:
+#   RealLifeOS_Data/
+#   ├── assets/              # Downloaded images from Dify
+#   │   ├── 1712345678.png
+#   │   └── ...
+#   ├── theme.json           # Generated theme
+#   ├── bosses.json          # Generated bosses
+#   ├── map.json             # Generated map tiles
+#   ├── quests.json          # Generated quests
+#   └── *.bak               # Automatic backups
+#

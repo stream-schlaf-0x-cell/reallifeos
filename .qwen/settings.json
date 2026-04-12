@@ -6,7 +6,11 @@
       "Bash(curl *)",
       "Bash(rm *)",
       "Bash(npm install)",
-      "Bash(npx *)"
+      "Bash(npx *)",
+      "Bash(mkdir *)",
+      "Bash(timeout *)",
+      "Bash(true)",
+      "Bash(cp *)"
     ]
   },
   "$version": 3

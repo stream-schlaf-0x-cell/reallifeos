@@ -1,0 +1,20 @@
+{
+  "name": "reallifeos-relay-api",
+  "version": "1.0.0",
+  "description": "Relay API — The Bridge between RealLifeOS React app and Dify AI workflows",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

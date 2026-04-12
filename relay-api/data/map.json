@@ -1,0 +1,12 @@
+{
+  "tiles": [
+    { "q": 0, "r": 0, "type": "nexus", "discovered": true, "mapBoss": null },
+    { "q": 1, "r": 0, "type": "academy", "discovered": true, "mapBoss": null },
+    { "q": -1, "r": 0, "type": "monastery", "discovered": true, "mapBoss": null },
+    { "q": 0, "r": -1, "type": "studio", "discovered": true, "mapBoss": null },
+    { "q": 0, "r": 1, "type": "server", "discovered": true, "mapBoss": null },
+    { "q": 1, "r": -1, "type": "gym", "discovered": true, "mapBoss": null },
+    { "q": -1, "r": 1, "type": "wilds", "discovered": true, "mapBoss": null }
+  ],
+  "playerPosition": { "q": 0, "r": 0 }
+}
