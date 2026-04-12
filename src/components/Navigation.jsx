@@ -7,7 +7,8 @@ const Navigation = ({ activeTab, setActiveTab, isMobile = false }) => {
     { id: "tree", label: "Skill Tree", icon: "brain", activeColor: "bg-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.5)]" },
     { id: "quests", label: "Quests", icon: "scroll", activeColor: "bg-amber-600 shadow-[0_0_15px_rgba(217,119,6,0.5)]" },
     { id: "battle", label: "Kämpfe", icon: "zap", activeColor: "bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.5)]" },
-    { id: "map", label: "World Map", icon: "map", activeColor: "bg-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)]" }
+    { id: "map", label: "World Map", icon: "map", activeColor: "bg-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)]" },
+    { id: "architect", label: "Architect", icon: "server", activeColor: "shadow-[0_0_15px_rgba(59,130,246,0.5)]" },
   ];
 
   if (isMobile) {
@@ -25,6 +26,7 @@ const Navigation = ({ activeTab, setActiveTab, isMobile = false }) => {
                 ? `text-white ${tab.activeColor}`
                 : "text-slate-400 hover:text-slate-200"
             }`}
+            style={activeTab === tab.id && tab.id === 'architect' ? { backgroundColor: 'var(--path-architect)' } : {}}
           >
             <Icon name={tab.icon} className="w-6 h-6 mb-1" />
             <span className="text-[10px] font-bold">{tab.label}</span>
@@ -46,8 +48,9 @@ const Navigation = ({ activeTab, setActiveTab, isMobile = false }) => {
           className={`px-6 py-3 rounded-xl font-bold transition-all duration-300 flex items-center gap-2 ${
             activeTab === tab.id
               ? `text-white ${tab.activeColor}`
-              : "bg-slate-800/50 text-slate-400 hover:bg-slate-700"
+              : "text-slate-400 hover:text-slate-200"
           }`}
+          style={activeTab === tab.id && tab.id === 'architect' ? { backgroundColor: 'var(--path-architect)' } : activeTab !== tab.id ? { backgroundColor: 'rgba(30, 41, 59, 0.5)' } : {}}
         >
           <Icon name={tab.icon} /> {tab.label}
         </button>

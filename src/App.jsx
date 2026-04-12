@@ -1,14 +1,16 @@
 import React, { useState } from "react";
 import { useGameState } from "./hooks/useGameState";
+import { ThemeProvider } from "./components/ThemeProvider";
 import Layout from "./components/Layout";
 import SkillTree from "./components/SkillTree";
 import Quests from "./components/Quests";
 import BattleArena from "./components/BattleArena";
 import WorldMap from "./components/WorldMap";
+import ArchitectTerminal from "./components/ArchitectTerminal";
 import DevToolsPanel from "./components/DevToolsPanel";
 import ActivityLogView from "./components/ActivityLogView";
 
-export default function App() {
+function AppContent() {
   const {
     gameState,
     handleQuestComplete,
@@ -35,6 +37,8 @@ export default function App() {
     devMode,
     toggleDevMode,
     defeatMapBoss,
+    backupState,
+    reloadGameConfig,
   } = useGameState();
 
   const [activeTab, setActiveTab] = useState("tree");
@@ -50,6 +54,8 @@ export default function App() {
         onToggleDevMode={toggleDevMode}
         onOpenLog={() => setShowLog(true)}
         gameLocked={gameLocked}
+        onBackup={backupState}
+        onReloadConfig={reloadGameConfig}
       >
         {gameLocked && !devMode ? (
           /* ═══ LOCKED OVERLAY ═══ */
@@ -95,6 +101,9 @@ export default function App() {
                 defeatMapBoss={defeatMapBoss}
               />
             )}
+            {activeTab === "architect" && (
+              <ArchitectTerminal />
+            )}
           </>
         )}
       </Layout>
@@ -136,5 +145,13 @@ export default function App() {
         />
       )}
     </>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }

@@ -3,12 +3,12 @@ import { useParticles } from "../engine/particleEngine";
 import Header from "./Header";
 import Navigation from "./Navigation";
 
-const Layout = ({ gameState, activeTab, setActiveTab, devMode, onToggleDevMode, onOpenLog, gameLocked, children }) => {
+const Layout = ({ gameState, activeTab, setActiveTab, devMode, onToggleDevMode, onOpenLog, gameLocked, onBackup, onReloadConfig, children }) => {
   const canvasRef = useRef(null);
   useParticles(canvasRef);
 
   return (
-    <div className="min-h-[100dvh] bg-slate-950 text-slate-200 font-sans selection:bg-purple-500/30 overflow-x-hidden flex flex-col relative">
+    <div className="min-h-[100dvh] text-[color:var(--text-primary)] font-sans selection:bg-purple-500/30 overflow-x-hidden flex flex-col relative" style={{ backgroundColor: 'var(--bg-primary)' }}>
       <canvas
         ref={canvasRef}
         className="fixed top-0 left-0 w-full h-full pointer-events-none z-0 opacity-40"
@@ -21,6 +21,8 @@ const Layout = ({ gameState, activeTab, setActiveTab, devMode, onToggleDevMode, 
           onToggleDevMode={onToggleDevMode}
           onOpenLog={onOpenLog}
           gameLocked={gameLocked}
+          onBackup={onBackup}
+          onReloadConfig={onReloadConfig}
         />
 
         {/* Desktop Navigation */}
@@ -33,7 +35,7 @@ const Layout = ({ gameState, activeTab, setActiveTab, devMode, onToggleDevMode, 
         </main>
 
         {/* Mobile Navigation (Sticky Bottom) */}
-        <div className="md:hidden fixed bottom-0 left-0 w-full bg-slate-900/95 backdrop-blur-md border-t border-slate-800 z-40 p-2">
+        <div className="md:hidden fixed bottom-0 left-0 w-full backdrop-blur-md border-t z-40 p-2" style={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'var(--border-secondary)' }}>
             <Navigation activeTab={activeTab} setActiveTab={setActiveTab} isMobile={true} />
         </div>
       </div>

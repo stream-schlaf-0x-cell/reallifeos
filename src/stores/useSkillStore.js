@@ -41,7 +41,7 @@ export const useSkillStore = create(
       /**
        * Freischaltet einen Skill
        */
-      unlockSkill: (skillId, skillPointsCost) => {
+      unlockSkill: (skillId) => {
         const state = get();
         const skillToUnlock = state.skills.find((s) => s.id === skillId);
 

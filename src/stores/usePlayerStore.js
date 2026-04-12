@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { playLevelUpSound, playUnlockSound } from '../engine/audioEngine';
+import { playLevelUpSound } from '../engine/audioEngine';
 
 /**
  * Player Store: Verwaltet Level, XP, Ressourcen, Quests und Aktivitätsprotokoll

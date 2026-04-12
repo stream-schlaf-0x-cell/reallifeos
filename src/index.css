@@ -4,6 +4,35 @@
   --color-slate-950: #020617;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════════════
+   CSS VARIABLES — Dynamic Theme Support
+   Injected by ThemeProvider from /data/theme.json
+   Components use bg-[color:var(--var-name)] to read them.
+   ═══════════════════════════════════════════════════════════════════════════════════ */
+:root {
+  /* Default fallback values — overridden by ThemeProvider */
+  --bg-primary: #020617;
+  --bg-secondary: #0f172a;
+  --bg-tertiary: #1e293b;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --border-primary: #334155;
+  --border-secondary: #1e293b;
+  --path-architect: #3b82f6;
+  --path-socratic: #f59e0b;
+  --path-bard: #a855f7;
+  --path-monk: #10b981;
+  --path-acrobat: #ef4444;
+  --accent-primary: #8b5cf6;
+  --accent-secondary: #ec4899;
+  --resource-xp: #8b5cf6;
+  --resource-sp: #f59e0b;
+  --resource-mp: #10b981;
+  --resource-gold: #eab308;
+  --resource-mana: #3b82f6;
+}
+
 @layer components {
   .custom-scrollbar::-webkit-scrollbar {
     height: 8px;

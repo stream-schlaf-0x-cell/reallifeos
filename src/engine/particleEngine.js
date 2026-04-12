@@ -2,20 +2,39 @@ import { useEffect } from "react";
 
 // ==========================================
 // PARTIKEL ENGINE HOOK
+// Reads particle colors from CSS variables injected by ThemeProvider.
 // ==========================================
+
+/**
+ * Reads particle config from CSS variables on :root.
+ * Returns { hueMin, hueMax, saturation, lightness, count, opacity }.
+ */
+function getParticleConfig() {
+  const styles = getComputedStyle(document.documentElement);
+  const getVar = (name, fallback) => {
+    const v = styles.getPropertyValue(name).trim();
+    return v ? Number(v) : fallback;
+  };
+  return {
+    hueMin: getVar('--particle-hue-min', 200),
+    hueMax: getVar('--particle-hue-max', 300),
+    saturation: getVar('--particle-saturation', 50),
+    lightness: getVar('--particle-lightness', 60),
+    count: getVar('--particle-count', 70),
+    opacity: getVar('--particle-opacity', 0.4),
+  };
+}
+
 class Particle {
-  constructor(canvas) {
+  constructor(canvas, config) {
     this.canvas = canvas;
     this.x = Math.random() * canvas.width;
     this.y = Math.random() * canvas.height;
     this.size = Math.random() * 2 + 0.5;
     this.speedX = Math.random() * 0.5 - 0.25;
     this.speedY = Math.random() * 0.5 - 0.25;
-    this.color = `rgba(${Math.floor(
-      Math.random() * 100 + 100
-    )}, ${Math.floor(Math.random() * 100 + 100)}, ${Math.floor(
-      Math.random() * 155 + 100
-    )}, ${Math.random() * 0.4 + 0.1})`;
+    const hue = config.hueMin + Math.random() * (config.hueMax - config.hueMin);
+    this.color = `hsla(${hue}, ${config.saturation}%, ${config.lightness}%, ${Math.random() * config.opacity + 0.1})`;
   }
   update() {
     this.x += this.speedX;
@@ -49,9 +68,10 @@ export const useParticles = (canvasRef) => {
     resize();
 
     const initParticles = () => {
+      const config = getParticleConfig();
       particles = [];
-      for (let i = 0; i < 70; i++) {
-        particles.push(new Particle(canvas));
+      for (let i = 0; i < config.count; i++) {
+        particles.push(new Particle(canvas, config));
       }
     };
 

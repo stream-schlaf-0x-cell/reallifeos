@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import { playHitSound } from '../engine/audioEngine';
 import DAILY_BOSSES from '../data/bosses.json';
 import ATTACKS from '../data/attacks.json';
-import { generateMap, areHexAdjacent } from '../utils/mapGenerator';
+import { generateMap } from '../utils/mapGenerator';
 
 const POI_TABLE = {
   monastery: { label: 'Kloster', icon: 'lotus', bonus: { manaRegen: 2 }, desc: '+2 Mana pro Quest' },
@@ -80,7 +80,8 @@ export const useWorldStore = create(
        * Enthüllt ein Tile der Karte
        * Kostet 10 MP
        */
-      uncoverTile: (tileIndex, playerMp, playerGold) => {
+      // eslint-disable-next-line no-unused-vars
+      uncoverTile: (tileIndex, playerMp, _playerGold) => {
         const UNCOVER_COST = 10;
         if (playerMp < UNCOVER_COST) return { success: false, reason: 'not_enough_mp' };
 

@@ -1,0 +1,72 @@
+[
+  {
+    "id": "q_architect_1",
+    "name": "Server aufräumen",
+    "path": "architect",
+    "xp": 30,
+    "description": "Docker-Container aktualisieren und Logs prüfen.",
+    "tier": 1,
+    "tags": ["tech", "maintenance"],
+    "prerequisites": []
+  },
+  {
+    "id": "q_socratic_1",
+    "name": "Philosophie-Kapitel lesen",
+    "path": "socratic",
+    "xp": 40,
+    "description": "30 Minuten Kant oder Nietzsche lesen.",
+    "tier": 1,
+    "tags": ["reading", "philosophy"],
+    "prerequisites": []
+  },
+  {
+    "id": "q_bard_1",
+    "name": "Neuen Track skizzieren",
+    "path": "bard",
+    "xp": 35,
+    "description": "15-Minuten-Skizze für einen Ambient-Track.",
+    "tier": 1,
+    "tags": ["music", "creative"],
+    "prerequisites": []
+  },
+  {
+    "id": "q_monk_1",
+    "name": "Morgenmeditation",
+    "path": "monk",
+    "xp": 25,
+    "description": "20 Minuten Vipassana-Meditation.",
+    "tier": 1,
+    "tags": ["meditation", "mindfulness"],
+    "prerequisites": []
+  },
+  {
+    "id": "q_acrobat_1",
+    "name": "Laufen",
+    "path": "acrobat",
+    "xp": 30,
+    "description": "30 Minuten leichtes Laufen.",
+    "tier": 1,
+    "tags": ["fitness", "cardio"],
+    "prerequisites": []
+  },
+  {
+    "id": "q_socratic_2",
+    "name": "Unterrichtskonzept erstellen",
+    "path": "socratic",
+    "xp": 60,
+    "description": "Ein komplettes Unterrichtskonzept mit didaktischer Analyse.",
+    "tier": 2,
+    "tags": ["teaching", "planning"],
+    "prerequisites": []
+  },
+  {
+    "id": "q_bard_2",
+    "name": "Track veröffentlichen",
+    "path": "bard",
+    "xp": 50,
+    "description": "Einen fertigen Track auf Streaming-Plattformen bringen.",
+    "tier": 2,
+    "tags": ["music", "release"],
+    "prerequisites": []
+  }
+]

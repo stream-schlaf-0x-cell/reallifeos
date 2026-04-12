@@ -11,9 +11,11 @@ const POI_EMOJI = {
   server: "🖥️",
   wilds: "⚔️",
   nexus: "🌀",
+  unknown: "❓",
 };
 
-const POI_BORDER_COLORS = {
+// Default border colors — overridden by CSS variables from theme
+const DEFAULT_POI_BORDER = {
   monastery: "#10b981",
   academy: "#f59e0b",
   gym: "#ef4444",
@@ -21,6 +23,7 @@ const POI_BORDER_COLORS = {
   server: "#3b82f6",
   wilds: "#f97316",
   nexus: "#06b6d4",
+  unknown: "#64748b",
 };
 
 const WorldMap = ({ gameState, uncoverTile, getPoiInfo, defeatMapBoss }) => {
@@ -35,7 +38,7 @@ const WorldMap = ({ gameState, uncoverTile, getPoiInfo, defeatMapBoss }) => {
   }, []);
 
   const handleTileClick = useCallback((index, tile) => {
-    if (!tile.discovered) {
+    if (!tile.discovered && !tile.generating) {
       uncoverTile(index);
       setRevealedTile(index);
       setTimeout(() => setRevealedTile(null), 800);
@@ -83,17 +86,32 @@ const WorldMap = ({ gameState, uncoverTile, getPoiInfo, defeatMapBoss }) => {
 
   const discoveredCount = tiles.filter((t) => t.discovered).length;
   const totalCount = tiles.length;
+  const generatingCount = tiles.filter((t) => t.generating).length;
   const bossTiles = tiles.filter((t) => t.mapBoss && !t.mapBoss.defeated);
 
+  // Helper to get POI border color from CSS variable or fallback
+  const getPoiBorderColor = (type) => {
+    const cssVar = getComputedStyle(document.documentElement).getPropertyValue(`--path-${type}`).trim();
+    return cssVar || DEFAULT_POI_BORDER[type] || "rgba(51, 65, 85, 1)";
+  };
+
   return (
-    <div className="h-full bg-slate-900/60 border border-slate-700/50 rounded-3xl p-4 flex flex-col overflow-hidden relative">
+    <div className="h-full rounded-3xl p-4 flex flex-col overflow-hidden relative" style={{
+      backgroundColor: 'rgba(2, 6, 23, 0.6)',
+      border: '1px solid var(--border-primary)',
+    }}>
       {/* Header */}
       <div className="flex justify-between items-center mb-4 z-10">
-        <h2 className="text-lg md:text-xl font-bold flex items-center gap-2 text-emerald-400">
+        <h2 className="text-lg md:text-xl font-bold flex items-center gap-2" style={{ color: 'var(--path-monk)' }}>
           <Icon name="map" /> Archipel des Geistes
         </h2>
-        <div className="text-[10px] md:text-xs text-slate-400 font-mono">
+        <div className="text-[10px] md:text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>
           {discoveredCount}/{totalCount} entdeckt • {bossTiles.length} Boss active
+          {generatingCount > 0 && (
+            <span className="ml-2" style={{ color: 'var(--accent-primary)' }}>
+              {generatingCount} generierend...
+            </span>
+          )}
         </div>
       </div>
 
@@ -104,25 +122,34 @@ const WorldMap = ({ gameState, uncoverTile, getPoiInfo, defeatMapBoss }) => {
           gameState.poiBonuses.moveRegen > 0) && (
           <div className="flex flex-wrap gap-2 mb-3 z-10">
             {gameState.poiBonuses.manaRegen > 0 && (
-              <div className="flex items-center gap-1 bg-blue-900/40 border border-blue-700/50 rounded-lg px-2 py-1 text-xs">
-                <Icon name="mana" className="w-3 h-3 text-blue-400" />
-                <span className="text-blue-300 font-mono">
+              <div className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs" style={{
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+              }}>
+                <Icon name="mana" className="w-3 h-3" style={{ color: 'var(--resource-mana)' }} />
+                <span style={{ color: 'var(--resource-mana)' }} className="font-mono">
                   +{gameState.poiBonuses.manaRegen} Mana/Quest
                 </span>
               </div>
             )}
             {gameState.poiBonuses.goldRegen > 0 && (
-              <div className="flex items-center gap-1 bg-yellow-900/40 border border-yellow-700/50 rounded-lg px-2 py-1 text-xs">
-                <Icon name="gold" className="w-3 h-3 text-yellow-400" />
-                <span className="text-yellow-300 font-mono">
+              <div className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs" style={{
+                backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                border: '1px solid rgba(234, 179, 8, 0.3)',
+              }}>
+                <Icon name="gold" className="w-3 h-3" style={{ color: 'var(--resource-gold)' }} />
+                <span style={{ color: 'var(--resource-gold)' }} className="font-mono">
                   +{gameState.poiBonuses.goldRegen} Gold/Quest
                 </span>
               </div>
             )}
             {gameState.poiBonuses.moveRegen > 0 && (
-              <div className="flex items-center gap-1 bg-emerald-900/40 border border-emerald-700/50 rounded-lg px-2 py-1 text-xs">
-                <Icon name="move" className="w-3 h-3 text-emerald-400" />
-                <span className="text-emerald-300 font-mono">
+              <div className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs" style={{
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+              }}>
+                <Icon name="move" className="w-3 h-3" style={{ color: 'var(--resource-mp)' }} />
+                <span style={{ color: 'var(--resource-mp)' }} className="font-mono">
                   +{gameState.poiBonuses.moveRegen} MP/Quest
                 </span>
               </div>
@@ -131,7 +158,10 @@ const WorldMap = ({ gameState, uncoverTile, getPoiInfo, defeatMapBoss }) => {
         )}
 
       {/* Map Area */}
-      <div className="flex-1 relative overflow-hidden bg-slate-950/50 rounded-2xl border border-slate-800/80 flex items-center justify-center">
+      <div className="flex-1 relative overflow-hidden rounded-2xl border flex items-center justify-center" style={{
+        backgroundColor: 'rgba(2, 6, 23, 0.5)',
+        borderColor: 'var(--border-secondary)',
+      }}>
         <svg
           className="w-full h-full min-h-[300px]"
           viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
@@ -185,8 +215,10 @@ const WorldMap = ({ gameState, uncoverTile, getPoiInfo, defeatMapBoss }) => {
               const poi = getPoiInfo(tile.type);
               const justRevealed = revealedTile === i;
               const borderColor = tile.discovered
-                ? POI_BORDER_COLORS[tile.type] || "rgba(51, 65, 85, 1)"
-                : "rgba(30, 41, 59, 1)";
+                ? getPoiBorderColor(tile.type)
+                : tile.generating
+                  ? 'rgba(139, 92, 246, 0.5)'
+                  : "rgba(30, 41, 59, 1)";
               const hasBoss = tile.mapBoss && !tile.mapBoss.defeated;
               const bossDefeated = tile.mapBoss && tile.mapBoss.defeated;
 
@@ -195,7 +227,7 @@ const WorldMap = ({ gameState, uncoverTile, getPoiInfo, defeatMapBoss }) => {
                   key={i}
                   transform={`translate(${x}, ${y})`}
                   className={`transition-all duration-500 ${
-                    !tile.discovered ? "cursor-pointer hover:scale-110" : ""
+                    !tile.discovered && !tile.generating ? "cursor-pointer hover:scale-110" : ""
                   }`}
                   onClick={() => handleTileClick(i, tile)}
                 >
@@ -207,9 +239,11 @@ const WorldMap = ({ gameState, uncoverTile, getPoiInfo, defeatMapBoss }) => {
                         ? bossDefeated
                           ? "rgba(16, 185, 129, 0.1)"
                           : "rgba(15, 23, 42, 0.9)"
-                        : "rgba(0, 0, 0, 0.5)"
+                        : tile.generating
+                          ? "rgba(139, 92, 246, 0.08)"
+                          : "rgba(0, 0, 0, 0.5)"
                     }
-                    stroke={isPlayerHere ? "#10b981" : hasBoss ? "#f97316" : borderColor}
+                    stroke={isPlayerHere ? "var(--path-monk)" : hasBoss ? "var(--path-acrobat)" : borderColor}
                     strokeWidth={isPlayerHere ? "3" : hasBoss ? "2.5" : "1.5"}
                     filter={isPlayerHere || tile.discovered ? "url(#glow)" : ""}
                     className={justRevealed ? "animate-tile-reveal" : ""}
@@ -228,7 +262,7 @@ const WorldMap = ({ gameState, uncoverTile, getPoiInfo, defeatMapBoss }) => {
                             cy="-30"
                             r="10"
                             fill="rgba(249, 115, 22, 0.3)"
-                            stroke="#f97316"
+                            stroke="var(--path-acrobat)"
                             strokeWidth="1.5"
                             filter="url(#bossGlow)"
                             className="animate-pulse"
@@ -273,7 +307,7 @@ const WorldMap = ({ gameState, uncoverTile, getPoiInfo, defeatMapBoss }) => {
                         textAnchor="middle"
                         fontWeight="bold"
                       >
-                        {poi.label.toUpperCase()}
+                        {poi?.label?.toUpperCase() || tile.type.toUpperCase()}
                       </text>
                       {/* Coords */}
                       <text
@@ -284,6 +318,29 @@ const WorldMap = ({ gameState, uncoverTile, getPoiInfo, defeatMapBoss }) => {
                         textAnchor="middle"
                       >
                         {tile.q},{tile.r}
+                      </text>
+                    </>
+                  ) : tile.generating ? (
+                    /* Generating state */
+                    <>
+                      <text
+                        x="0"
+                        y="3"
+                        fill="rgba(139, 92, 246, 0.6)"
+                        fontSize="10"
+                        textAnchor="middle"
+                        className="animate-pulse"
+                      >
+                        ⚙️
+                      </text>
+                      <text
+                        x="0"
+                        y="16"
+                        fill="rgba(139, 92, 246, 0.4)"
+                        fontSize="5"
+                        textAnchor="middle"
+                      >
+                        KI...
                       </text>
                     </>
                   ) : (
@@ -316,7 +373,7 @@ const WorldMap = ({ gameState, uncoverTile, getPoiInfo, defeatMapBoss }) => {
                       cx="0"
                       cy="28"
                       r="4"
-                      fill="#10b981"
+                      fill="var(--path-monk)"
                       className="animate-pulse"
                     />
                   )}
@@ -328,32 +385,63 @@ const WorldMap = ({ gameState, uncoverTile, getPoiInfo, defeatMapBoss }) => {
 
         {/* Pan/Zoom controls */}
         <div className="absolute top-3 right-3 flex flex-col gap-1 z-10">
-          <button onClick={() => zoom(0.8)} className="w-7 h-7 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 text-xs font-bold transition-colors flex items-center justify-center">
+          <button onClick={() => zoom(0.8)} className="w-7 h-7 rounded-lg border text-xs font-bold transition-colors flex items-center justify-center" style={{
+            backgroundColor: 'rgba(30, 41, 59, 0.8)',
+            borderColor: 'var(--border-primary)',
+            color: 'var(--text-secondary)',
+          }}>
             +
           </button>
-          <button onClick={() => zoom(1.25)} className="w-7 h-7 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 text-xs font-bold transition-colors flex items-center justify-center">
+          <button onClick={() => zoom(1.25)} className="w-7 h-7 rounded-lg border text-xs font-bold transition-colors flex items-center justify-center" style={{
+            backgroundColor: 'rgba(30, 41, 59, 0.8)',
+            borderColor: 'var(--border-primary)',
+            color: 'var(--text-secondary)',
+          }}>
             −
           </button>
           <div className="h-1"></div>
-          <button onClick={() => pan(0, -PAN_AMOUNT)} className="w-7 h-7 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 text-xs transition-colors">↑</button>
+          <button onClick={() => pan(0, -PAN_AMOUNT)} className="w-7 h-7 rounded-lg border text-xs transition-colors" style={{
+            backgroundColor: 'rgba(30, 41, 59, 0.8)',
+            borderColor: 'var(--border-primary)',
+            color: 'var(--text-secondary)',
+          }}>↑</button>
           <div className="flex gap-1">
-            <button onClick={() => pan(-PAN_AMOUNT, 0)} className="w-7 h-7 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 text-xs transition-colors">←</button>
-            <button onClick={() => pan(PAN_AMOUNT, 0)} className="w-7 h-7 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 text-xs transition-colors">→</button>
+            <button onClick={() => pan(-PAN_AMOUNT, 0)} className="w-7 h-7 rounded-lg border text-xs transition-colors" style={{
+              backgroundColor: 'rgba(30, 41, 59, 0.8)',
+              borderColor: 'var(--border-primary)',
+              color: 'var(--text-secondary)',
+            }}>←</button>
+            <button onClick={() => pan(PAN_AMOUNT, 0)} className="w-7 h-7 rounded-lg border text-xs transition-colors" style={{
+              backgroundColor: 'rgba(30, 41, 59, 0.8)',
+              borderColor: 'var(--border-primary)',
+              color: 'var(--text-secondary)',
+            }}>→</button>
           </div>
-          <button onClick={() => pan(0, PAN_AMOUNT)} className="w-7 h-7 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 text-xs transition-colors">↓</button>
-          <button onClick={() => setViewBox({ x: -300, y: -300, w: 600, h: 600 })} className="w-7 h-7 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-400 hover:text-white hover:border-slate-500 text-[9px] font-bold transition-colors mt-1" title="Zentrieren">
+          <button onClick={() => pan(0, PAN_AMOUNT)} className="w-7 h-7 rounded-lg border text-xs transition-colors" style={{
+            backgroundColor: 'rgba(30, 41, 59, 0.8)',
+            borderColor: 'var(--border-primary)',
+            color: 'var(--text-secondary)',
+          }}>↓</button>
+          <button onClick={() => setViewBox({ x: -300, y: -300, w: 600, h: 600 })} className="w-7 h-7 rounded-lg border text-[9px] font-bold transition-colors mt-1" style={{
+            backgroundColor: 'rgba(30, 41, 59, 0.8)',
+            borderColor: 'var(--border-primary)',
+            color: 'var(--text-muted)',
+          }} title="Zentrieren">
             ⊙
           </button>
         </div>
 
         {/* Info overlay */}
-        <div className="absolute bottom-4 left-4 bg-slate-900/80 p-3 md:p-4 rounded-xl border border-slate-700 backdrop-blur-sm max-w-[200px] md:max-w-xs pointer-events-none">
-          <h3 className="font-bold text-sm md:text-base text-slate-200 mb-1">
+        <div className="absolute bottom-4 left-4 p-3 md:p-4 rounded-xl border backdrop-blur-sm max-w-[200px] md:max-w-xs pointer-events-none" style={{
+          backgroundColor: 'rgba(2, 6, 23, 0.8)',
+          borderColor: 'var(--border-primary)',
+        }}>
+          <h3 className="font-bold text-sm md:text-base mb-1" style={{ color: 'var(--text-primary)' }}>
             KI Navigation Aktiv
           </h3>
-          <p className="text-[10px] md:text-xs text-slate-400">
+          <p className="text-[10px] md:text-xs" style={{ color: 'var(--text-muted)' }}>
             Klicke auf unentdeckte Felder neben bereits entdeckten.{" "}
-            <span className="text-emerald-400">{UNCOVER_COST} MP</span> pro Scan.
+            <span style={{ color: 'var(--resource-mp)' }}>{UNCOVER_COST} MP</span> pro Scan.
             💀 Skull = Map Boss (klickbar).
           </p>
           <div className="mt-2 flex flex-wrap gap-1">
@@ -362,10 +450,10 @@ const WorldMap = ({ gameState, uncoverTile, getPoiInfo, defeatMapBoss }) => {
               return (
                 <span
                   key={type}
-                  className="text-[10px] bg-slate-800/60 px-1 rounded"
-                  style={{ color: POI_BORDER_COLORS[type] || "#94a3b8" }}
+                  className="text-[10px] px-1 rounded"
+                  style={{ backgroundColor: 'rgba(30, 41, 59, 0.6)', color: getPoiBorderColor(type) }}
                 >
-                  {emoji} {poi.label}
+                  {emoji} {poi?.label || type}
                 </span>
               );
             })}
