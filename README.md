@@ -1,7 +1,7 @@
 🌌 Tim's Second Brain & RPG: Architektur für Gleichzeitiges Aufblühen
 Ein radikal elastisches Lebens-Betriebssystem, das digitale Souveränität, pädagogische Exzellenz, künstlerische Tiefe und persönliche Entwicklung vereint. Es ist mehr als ein Werkzeug – es ist das Framework für Intelligence Augmentation, gestaltet für Fokus, Klarheit und tiefgreifendes Wachstum.
 
-**Version 2.0 — Evolving One Life Game:** Die Welt existiert erst, wenn man sie betritt. Fog of War, Biome-Evolution, Server-Sync Persistence und robuste Asset-Lade-Logik.
+**Version 3.0 — Immersive 3D World:** Vollständige 3D-Hex-Landschaft mit react-three-fiber, PlayerAvatar, Bloom-Effekten, Infinite Map und Artefakt-Bildern.
 
 📜 1. Die System-Philosophie (Der innere Antrieb)
 Dieses System existiert nicht zum stumpfen Abarbeiten von To-dos. Es ist die Antwort auf das Paradoxon, alles zugleich zu wollen, ohne an den eigenen Ansprüchen auszubrennen.
