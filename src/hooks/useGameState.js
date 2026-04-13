@@ -5,6 +5,7 @@ import { useWorldStore } from '../stores/useWorldStore';
 import { SKILL_TREE_DATA } from '../data/skillTreeData';
 import { fetchGameData, BossArraySchema, MapDataSchema, AttackArraySchema, QuestArraySchema, logValidationFailure } from '../utils/schemas';
 import { autoBackup } from '../utils/backupManager';
+import BIOMES from '../data/biomes.json';
 
 // ═══════════════════════════════════════════════════════════════════════════════════
 // BUNDLED FALLBACKS (imported from local data — used when external fetch fails)
@@ -21,6 +22,121 @@ const isGameLocked = () => {
   const lockDate = new Date(GAME_LOCK_DATE);
   const now = new Date();
   return now < lockDate;
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// SERVER SYNC & PERSISTENCE HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Speichert den gesamten Spielzustand auf dem Relay-Server
+ * Single Save State: Alle Änderungen werden sofort persistiert
+ */
+const saveStateToServer = async (worldState, mapData, defeatedBosses) => {
+  try {
+    const payload = {
+      worldState: {
+        currentBiome: worldState.currentBiome,
+        discoveredTileCount: worldState.discoveredTileCount,
+        biomeTransitionCount: worldState.biomeTransitionCount,
+        lastBiomeTriggerCoords: worldState.lastBiomeTriggerCoords,
+        serverSynced: true,
+        lastSaveTimestamp: Date.now(),
+      },
+      mapData: {
+        tiles: mapData.tiles.map(t => ({
+          q: t.q,
+          r: t.r,
+          type: t.type,
+          discovered: t.discovered,
+          mapBoss: t.mapBoss,
+          generating: t.generating || false,
+        })),
+        playerPosition: mapData.playerPosition,
+      },
+      defeatedBosses,
+      timestamp: Date.now(),
+    };
+
+    const response = await fetch('/api/ai/save-state', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      console.warn('[ServerSync] Save state failed:', response.status);
+      return { success: false };
+    }
+
+    const result = await response.json();
+    console.log('[ServerSync] State saved successfully');
+    return { success: true, result };
+  } catch (err) {
+    console.warn('[ServerSync] Save state error:', err.message);
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Lädt den Spielzustand vom Relay-Server
+ * Frontend ist "stateless" und lädt beim Start vom Server
+ */
+const loadStateFromServer = async () => {
+  try {
+    const response = await fetch('/api/ai/load-state');
+    
+    if (!response.ok) {
+      // Kein Server-State vorhanden — nutze lokalen Zustand
+      return { success: false, fromServer: false };
+    }
+
+    const serverState = await response.json();
+    console.log('[ServerSync] Loaded state from server');
+    return { success: true, fromServer: true, data: serverState };
+  } catch (err) {
+    console.warn('[ServerSync] Load state error:', err.message);
+    return { success: false, fromServer: false, error: err.message };
+  }
+};
+
+/**
+ * Trigger Biome Evolution: Sendet Request an /evolve Endpoint
+ * Generiert neues theme.json und bosses.json für das Biom
+ */
+const triggerBiomeEvolution = async (currentBiome, tileCoords, level) => {
+  try {
+    const biomeConfig = BIOMES[currentBiome];
+    if (!biomeConfig) {
+      console.warn('[BiomeEvolution] Unknown biome:', currentBiome);
+      return { success: false };
+    }
+
+    const response = await fetch('/api/ai/evolve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action_type: 'evolve',
+        current_biome: currentBiome,
+        target_biome: biomeConfig.id,
+        coords: tileCoords,
+        current_level: level,
+        discovered_count: biomeConfig.triggerThreshold,
+      }),
+    });
+
+    if (!response.ok) {
+      console.warn('[BiomeEvolution] Evolution request failed:', response.status);
+      return { success: false };
+    }
+
+    const result = await response.json();
+    console.log('[BiomeEvolution] Evolution triggered:', result);
+    return { success: true, result };
+  } catch (err) {
+    console.warn('[BiomeEvolution] Evolution error:', err.message);
+    return { success: false, error: err.message };
+  }
 };
 
 /**
@@ -88,8 +204,7 @@ export const useGameState = () => {
   // Initialize migration on first call
   useEffect(() => {
     runMigration();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []);  
 
   // State aus allen drei Stores
   const playerState = usePlayerStore();
@@ -121,6 +236,74 @@ export const useGameState = () => {
 
   // Track whether initial config load has happened
   const configLoadedRef = useRef(false);
+  const serverSyncAttemptedRef = useRef(false);
+
+  // ─── LOAD SERVER STATE ON MOUNT (Stateless Frontend) ─────────────────
+  useEffect(() => {
+    if (serverSyncAttemptedRef.current) return;
+    serverSyncAttemptedRef.current = true;
+
+    const loadServerState = async () => {
+      const serverResult = await loadStateFromServer();
+      
+      if (serverResult.success && serverResult.data) {
+        console.log('[ServerSync] Applying server state...');
+        
+        // Apply world state
+        if (serverResult.data.worldState) {
+          useWorldStore.getState().loadWorldState(serverResult.data.worldState);
+        }
+        
+        // Apply map data (merge with existing)
+        if (serverResult.data.mapData?.tiles) {
+          const serverTiles = serverResult.data.mapData.tiles;
+          const currentTiles = useWorldStore.getState().mapData.tiles;
+          
+          // Merge: prefer server discovered state
+          const mergedTiles = [...currentTiles];
+          serverTiles.forEach((serverTile) => {
+            const existingIndex = mergedTiles.findIndex(
+              (t) => t.q === serverTile.q && t.r === serverTile.r
+            );
+            if (existingIndex === -1) {
+              mergedTiles.push({
+                ...serverTile,
+                discovered: serverTile.discovered || false,
+              });
+            } else {
+              mergedTiles[existingIndex] = {
+                ...mergedTiles[existingIndex],
+                discovered: serverTile.discovered || mergedTiles[existingIndex].discovered,
+                mapBoss: serverTile.mapBoss || mergedTiles[existingIndex].mapBoss,
+                generating: serverTile.generating || false,
+              };
+            }
+          });
+
+          useWorldStore.setState({
+            mapData: {
+              ...useWorldStore.getState().mapData,
+              tiles: mergedTiles,
+              playerPosition: serverResult.data.mapData.playerPosition || { q: 0, r: 0 },
+            },
+          });
+        }
+
+        // Apply defeated bosses
+        if (serverResult.data.defeatedBosses) {
+          useWorldStore.setState({
+            defeatedBosses: serverResult.data.defeatedBosses,
+          });
+        }
+
+        console.log('[ServerSync] Server state applied');
+      } else {
+        console.log('[ServerSync] No server state found, using local state');
+      }
+    };
+
+    loadServerState();
+  }, []);
 
   // ─── LOAD EXTERNAL GAME CONFIG ────────────────────────────────────────────────
   const loadGameConfig = useCallback(async () => {
@@ -295,7 +478,11 @@ export const useGameState = () => {
     const result = worldState.uncoverTile(tileIndex, playerState.movementPoints, playerState.gold);
 
     if (!result.success) {
-      playerState.showToast(`Nicht genug Bewegungspunkte! (Kosten: 10)`, 'error');
+      if (result.reason === 'fog_of_war_not_adjacent') {
+        playerState.showToast('Dieses Tile liegt im Nebel! Entdecke erst benachbarte Tiles.', 'warning');
+      } else {
+        playerState.showToast(`Nicht genug Bewegungspunkte! (Kosten: 10)`, 'error');
+      }
       return;
     }
 
@@ -308,12 +495,85 @@ export const useGameState = () => {
 
     playerState.showToast('Tile enthüllt!', 'success');
 
-    // Check if this tile is on the edge → trigger generative webhook
+    // ═══════════════════════════════════════════════════════════
+    // SERVER PERSISTENCE: Sofort nach Tile-Entdeckung speichern
+    // ═══════════════════════════════════════════════════════════
+    const updatedWorldState = useWorldStore.getState().worldState;
+    const updatedMapData = useWorldStore.getState().mapData;
+    const updatedDefeatedBosses = useWorldStore.getState().defeatedBosses;
+    
+    saveStateToServer(updatedWorldState, updatedMapData, updatedDefeatedBosses)
+      .then(saveResult => {
+        if (saveResult.success) {
+          useWorldStore.setState({
+            worldState: {
+              ...updatedWorldState,
+              serverSynced: true,
+            },
+          });
+        }
+      });
+
+    // Check if this tile triggers biome transition
     const tile = worldState.mapData.tiles[tileIndex];
     if (tile) {
+      const biomeCheck = worldState.checkBiomeTransition(tileIndex);
+      if (biomeCheck.shouldTransition) {
+        handleBiomeEvolution(biomeCheck, tileIndex);
+      }
+      
+      // Trigger generative tile generation for edge tiles
       checkAndTriggerTileGeneration(tile);
     }
   };
+
+  /**
+   * HANDLER: Biome-Evolution beim Erreichen des Schwellenwerts
+   */
+  const handleBiomeEvolution = useCallback(async (biomeCheck, tileIndex) => {
+    const currentBiome = worldState.worldState.currentBiome;
+    const tile = worldState.mapData.tiles[tileIndex];
+    
+    console.log(`[Biome] Evolution check: ${currentBiome} → discovered ${biomeCheck.discoveredCount} tiles`);
+
+    // Get available biomes (excluding current)
+    const availableBiomes = Object.values(BIOMES).filter(b => b.id !== currentBiome);
+    if (availableBiomes.length === 0) return;
+
+    // Randomly select next biome
+    const nextBiome = availableBiomes[Math.floor(Math.random() * availableBiomes.length)];
+    
+    console.log(`[Biome] Triggering evolution to: ${nextBiome.name}`);
+
+    // Update worldState with transition coords
+    useWorldStore.setState({
+      worldState: {
+        ...worldState.worldState,
+        lastBiomeTriggerCoords: { q: tile.q, r: tile.r },
+      },
+    });
+
+    // Server request: Deploy new biome assets
+    const evolutionResult = await triggerBiomeEvolution(
+      currentBiome,
+      { q: tile.q, r: tile.r },
+      playerState.level
+    );
+
+    if (evolutionResult.success) {
+      playerState.showToast(
+        `🌍 Biom-Evolution: ${nextBiome.name} wird generiert...`,
+        'success'
+      );
+
+      // Reload game config after evolution (new theme.json and bosses.json)
+      setTimeout(() => {
+        loadGameConfig();
+        // Trigger theme reload via event (reloadTheme defined later)
+        window.dispatchEvent(new CustomEvent('rls-theme-reload'));
+      }, 2000);
+    }
+  }, [worldState.worldState.currentBiome, worldState.mapData.tiles, playerState.level]);
 
   /**
    * Checks if a newly revealed tile is on the "edge" of the known map
@@ -486,6 +746,13 @@ export const useGameState = () => {
     playerState.showToast('Spiel-Konfiguration wird neu geladen...', 'info');
   }, [loadGameConfig]);
 
+  // ─── THEME RELOAD (after biome evolution) ────────────────────────────────────
+  const reloadTheme = useCallback(() => {
+    // Trigger theme reload by dispatching a custom event
+    window.dispatchEvent(new CustomEvent('rls-theme-reload'));
+    playerState.showToast('Theme wird neu geladen...', 'info');
+  }, []);
+
   // ═══════════════════════════════════════════════════════════════════════════════════
   // RETURN: Exakt gleiche API wie alte useGameState + neue Felder
   // ═══════════════════════════════════════════════════════════════════════════════════
@@ -519,6 +786,15 @@ export const useGameState = () => {
       lastDamageAmount: worldState.lastDamageAmount,
       lastDamageType: worldState.lastDamageType,
       defeatedBosses: worldState.defeatedBosses,
+
+      // ═══════════════════════════════════════════════════════════
+      // EVOLVING WORLD: worldState & Biome-Infos
+      // ═══════════════════════════════════════════════════════════
+      worldState: worldState.worldState,
+      currentBiome: worldState.worldState.currentBiome,
+      biomeInfo: worldState.getCurrentBiome(),
+      biomeTransitionCount: worldState.worldState.biomeTransitionCount,
+      serverSynced: worldState.worldState.serverSynced,
 
       // From External Game Config (merged)
       bosses: gameConfig.bosses,
@@ -566,6 +842,15 @@ export const useGameState = () => {
 
     // Config Management
     reloadGameConfig,
+    reloadTheme,
+
+    // ═══════════════════════════════════════════════════════════
+    // EVOLVING WORLD: Server Sync Actions
+    // ═══════════════════════════════════════════════════════════
+    serverSyncState: () => {
+      const ws = useWorldStore.getState();
+      return saveStateToServer(ws.worldState, ws.mapData, ws.defeatedBosses);
+    },
   };
 };
 

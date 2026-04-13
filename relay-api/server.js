@@ -8,6 +8,9 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import {
   ensureDirectories,
   processImageUrls,
@@ -17,6 +20,11 @@ import {
   rollbackFile,
   listBackups,
 } from './utils.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+// Alias for fs.promises (already using fs/promises import)
+const fsPromises = fs;
 
 // ─── Configuration ────────────────────────────────────────────────────────
 const PORT = parseInt(process.env.PORT || '3100', 10);
@@ -364,11 +372,219 @@ app.get('/api/ai/backups', async (_req, res) => {
   }
 });
 
+// ─── Save State Endpoint (Single Save State Persistence) ────────────────────
+/**
+ * POST /api/ai/save-state
+ * 
+ * Speichert den gesamten Spielzustand (worldState, mapData, defeatedBosses)
+ * als einzelne JSON-Datei im Data-Volume.
+ * 
+ * Expected body:
+ * {
+ *   "worldState": { "currentBiome": "default", "discoveredTileCount": 5, ... },
+ *   "mapData": { "tiles": [...], "playerPosition": { "q": 0, "r": 0 } },
+ *   "defeatedBosses": ["map_boss_1", ...],
+ *   "timestamp": 1712345678901
+ * }
+ */
+app.post('/api/ai/save-state', async (req, res) => {
+  const startTime = Date.now();
+
+  try {
+    const { worldState, mapData, defeatedBosses, timestamp } = req.body;
+
+    if (!worldState || !mapData) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: worldState and mapData',
+      });
+    }
+
+    const stateData = {
+      worldState,
+      mapData,
+      defeatedBosses: defeatedBosses || [],
+      timestamp: timestamp || Date.now(),
+      version: '2.0', // Evolving World version
+    };
+
+    const writeResult = await writeJsonFile('save-state.json', stateData);
+
+    console.log(`[RelayAPI] State saved: save-state.json (${writeResult.bytesWritten} bytes)`);
+
+    res.json({
+      success: true,
+      targetFile: 'save-state.json',
+      fileSize: writeResult.bytesWritten,
+      duration: Date.now() - startTime,
+    });
+  } catch (err) {
+    console.error(`[RelayAPI] Save state failed: ${err.message}`);
+    res.status(500).json({
+      success: false,
+      error: `Save state error: ${err.message}`,
+      duration: Date.now() - startTime,
+    });
+  }
+});
+
+// ─── Load State Endpoint (Stateless Frontend) ───────────────────────────────
+/**
+ * GET /api/ai/load-state
+ * 
+ * Lädt den gespeicherten Spielzustand vom Server.
+ * Frontend ist "stateless" und lädt beim Start immer vom Server.
+ * 
+ * Returns: Full save state or 404 if no state exists
+ */
+app.get('/api/ai/load-state', async (req, res) => {
+  try {
+    const statePath = path.join(DATA_DIR, 'save-state.json');
+
+    try {
+      await fsPromises.access(statePath);
+    } catch {
+      // File doesn't exist — no saved state
+      return res.status(404).json({
+        success: false,
+        error: 'No saved state found',
+      });
+    }
+
+    const stateData = await fsPromises.readFile(statePath, 'utf-8');
+    const parsed = JSON.parse(stateData);
+
+    console.log(`[RelayAPI] State loaded: save-state.json`);
+
+    res.json({
+      success: true,
+      ...parsed,
+    });
+  } catch (err) {
+    console.error(`[RelayAPI] Load state failed: ${err.message}`);
+    res.status(500).json({
+      success: false,
+      error: `Load state error: ${err.message}`,
+    });
+  }
+});
+
+// ─── Evolve Endpoint (Biome Transition) ─────────────────────────────────────
+/**
+ * POST /api/ai/evolve
+ * 
+ * Trigger Biome-Evolution: Sendet Prompt an Dify, um neues theme.json
+ * und bosses.json für das Ziel-Biom zu generieren.
+ * 
+ * Expected body:
+ * {
+ *   "action_type": "evolve",
+ *   "current_biome": "default",
+ *   "target_biome": "crystal_caves",
+ *   "coords": { "q": 2, "r": -1 },
+ *   "current_level": 5,
+ *   "discovered_count": 4
+ * }
+ */
+app.post('/api/ai/evolve', async (req, res) => {
+  const startTime = Date.now();
+
+  try {
+    const { action_type, current_biome, target_biome, coords, current_level, discovered_count } = req.body;
+
+    if (!target_biome || typeof target_biome !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing or invalid "target_biome"',
+      });
+    }
+
+    if (!DIFY_API_KEY) {
+      return res.status(500).json({
+        success: false,
+        error: 'Dify API key not configured on the server.',
+      });
+    }
+
+    console.log(`[RelayAPI] Evolve request: ${current_biome} → ${target_biome}`);
+
+    // Build Dify prompt for biome evolution
+    const prompt = `Evolve the game world from biome "${current_biome || 'default'}" to biome "${target_biome}". 
+    Generate a new theme.json with appropriate colors and atmosphere for the ${target_biome} biome.
+    Also generate new bosses.json with 3 bosses fitting the ${target_biome} theme.
+    The player is at level ${current_level || 'unknown'} and has discovered ${discovered_count || 'unknown'} tiles.`;
+
+    // Call Dify
+    const difyResponse = await axios.post(
+      DIFY_API_URL,
+      {
+        inputs: {
+          action_type: 'theme',
+          user_prompt: prompt,
+          current_level: String(current_level || 'unknown'),
+          target_biome: target_biome,
+          current_biome: String(current_biome || 'default'),
+        },
+        response_mode: 'blocking',
+        user: 'RealLifeOS',
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${DIFY_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: REQUEST_TIMEOUT,
+      }
+    );
+
+    // Extract and process theme data
+    let themeData;
+    try {
+      themeData = extractJsonFromDifyResponse(difyResponse.data);
+    } catch (err) {
+      return res.status(502).json({
+        success: false,
+        error: `Dify response parsing failed: ${err.message}`,
+      });
+    }
+
+    // Process images for theme
+    const imageResult = await processImageUrls(themeData);
+
+    // Write theme.json
+    const writeResult = await writeJsonFile('theme.json', themeData);
+
+    console.log(`[RelayAPI] Evolve complete: theme.json for ${target_biome}`);
+
+    res.json({
+      success: true,
+      action: 'evolve',
+      fromBiome: current_biome,
+      toBiome: target_biome,
+      targetFile: 'theme.json',
+      imagesDownloaded: imageResult.downloadedCount,
+      fileSize: writeResult.bytesWritten,
+      duration: Date.now() - startTime,
+    });
+  } catch (err) {
+    const errorDetails = err.response?.data
+      ? `Dify API error: ${JSON.stringify(err.response.data).substring(0, 500)}`
+      : err.message;
+
+    console.error(`[RelayAPI] Evolve failed: ${errorDetails}`);
+    res.status(err.response?.status === 401 ? 401 : 500).json({
+      success: false,
+      error: err.response?.status === 401 ? 'Invalid Dify API key' : `Evolve error: ${errorDetails}`,
+      duration: Date.now() - startTime,
+    });
+  }
+});
+
 // ─── 404 Handler ──────────────────────────────────────────────────────────
 app.use((_req, res) => {
   res.status(404).json({
     success: false,
-    error: 'Endpoint not found. Available: POST /api/ai/deploy, POST /api/ai/generate_tile, POST /api/ai/restore_backup, GET /api/ai/backups, GET /health',
+    error: 'Endpoint not found. Available: POST /api/ai/deploy, POST /api/ai/generate_tile, POST /api/ai/evolve, POST /api/ai/save-state, GET /api/ai/load-state, POST /api/ai/restore_backup, GET /api/ai/backups, GET /health',
   });
 });
 
@@ -403,6 +619,9 @@ async function main() {
       console.log('╠══════════════════════════════════════════════════════════╣');
       console.log('║  POST /api/ai/deploy        — Send prompt to Dify       ║');
       console.log('║  POST /api/ai/generate_tile — Generate new map tile     ║');
+      console.log('║  POST /api/ai/evolve        — Biome evolution           ║');
+      console.log('║  POST /api/ai/save-state    — Save game state           ║');
+      console.log('║  GET  /api/ai/load-state    — Load game state           ║');
       console.log('║  POST /api/ai/restore_backup — Rollback to backup       ║');
       console.log('║  GET  /api/ai/backups        — List available backups   ║');
       console.log('║  GET  /health                — Health check             ║');

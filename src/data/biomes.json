@@ -1,0 +1,111 @@
+{
+  "default": {
+    "id": "default",
+    "name": "Nexus-Ebene",
+    "description": "Das Zentrum des Geistes — ein ruhiger, neutraler Ort des Erwachens.",
+    "startingBiome": true,
+    "tileDistribution": {
+      "nexus": 3,
+      "monastery": 15,
+      "academy": 15,
+      "gym": 12,
+      "studio": 10,
+      "server": 10,
+      "wilds": 35
+    },
+    "bossPool": [
+      { "id": "map_boss_1", "name": "Wächter der Ablenkung", "type": "Wildnis", "color": "text-orange-400", "baseHp": 100 },
+      { "id": "map_boss_2", "name": "Schatten der Unordnung", "type": "Wildnis", "color": "text-orange-400", "baseHp": 120 },
+      { "id": "map_boss_3", "name": "Dämon der Bequemlichkeit", "type": "Wildnis", "color": "text-orange-400", "baseHp": 150 }
+    ],
+    "triggerThreshold": 3
+  },
+  "crystal_caves": {
+    "id": "crystal_caves",
+    "name": "Kristallhöhlen",
+    "description": "Tiefe Höhlen voller reflektierender Kristalle — Mana fließt hier stärker.",
+    "startingBiome": false,
+    "tileDistribution": {
+      "nexus": 2,
+      "monastery": 20,
+      "academy": 10,
+      "gym": 8,
+      "studio": 15,
+      "server": 20,
+      "wilds": 25
+    },
+    "bossPool": [
+      { "id": "crystal_boss_1", "name": "Prismatischer Wächter", "type": "Kristall", "color": "text-cyan-400", "baseHp": 180 },
+      { "id": "crystal_boss_2", "name": "Splittergolem", "type": "Kristall", "color": "text-cyan-400", "baseHp": 220 },
+      { "id": "crystal_boss_3", "name": "Resonanz-Phantom", "type": "Kristall", "color": "text-cyan-400", "baseHp": 250 }
+    ],
+    "triggerThreshold": 4,
+    "bonuses": { "manaRegen": 1 }
+  },
+  "iron_forge": {
+    "id": "iron_forge",
+    "name": "Eisenschmiede",
+    "description": "Eine glühende Schmiede — physische Stärke wird hier belohnt.",
+    "startingBiome": false,
+    "tileDistribution": {
+      "nexus": 1,
+      "monastery": 5,
+      "academy": 8,
+      "gym": 30,
+      "studio": 5,
+      "server": 15,
+      "wilds": 36
+    },
+    "bossPool": [
+      { "id": "iron_boss_1", "name": "Schmiedemeister Vulkan", "type": "Schmiede", "color": "text-red-400", "baseHp": 200 },
+      { "id": "iron_boss_2", "name": "Flammenwächter", "type": "Schmiede", "color": "text-red-400", "baseHp": 240 },
+      { "id": "iron_boss_3", "name": "Erz-Baron", "type": "Schmiede", "color": "text-red-400", "baseHp": 280 }
+    ],
+    "triggerThreshold": 4,
+    "bonuses": { "moveRegen": 1 }
+  },
+  "data_streams": {
+    "id": "data_streams",
+    "name": "Datenströme",
+    "description": "Ein digitales Labyrinth aus fließendem Code und verschlüsselten Pfaden.",
+    "startingBiome": false,
+    "tileDistribution": {
+      "nexus": 2,
+      "monastery": 8,
+      "academy": 12,
+      "gym": 8,
+      "studio": 8,
+      "server": 35,
+      "wilds": 27
+    },
+    "bossPool": [
+      { "id": "data_boss_1", "name": "Firewall-Dämon", "type": "Daten", "color": "text-blue-400", "baseHp": 160 },
+      { "id": "data_boss_2", "name": "Trojanischer Koloss", "type": "Daten", "color": "text-blue-400", "baseHp": 210 },
+      { "id": "data_boss_3", "name": "Null-Tag-Phantom", "type": "Daten", "color": "text-blue-400", "baseHp": 260 }
+    ],
+    "triggerThreshold": 4,
+    "bonuses": { "goldRegen": 1 }
+  },
+  "shadow_garden": {
+    "id": "shadow_garden",
+    "name": "Schattengarten",
+    "description": "Ein verwunschener Garten — hier wachsen nur die Pflanzen, die du besiegt hast.",
+    "startingBiome": false,
+    "tileDistribution": {
+      "nexus": 1,
+      "monastery": 25,
+      "academy": 5,
+      "gym": 5,
+      "studio": 20,
+      "server": 5,
+      "wilds": 39
+    },
+    "bossPool": [
+      { "id": "shadow_boss_1", "name": "Dornenwächter", "type": "Schatten", "color": "text-emerald-400", "baseHp": 170 },
+      { "id": "shadow_boss_2", "name": "Nachtblatt-Schreck", "type": "Schatten", "color": "text-emerald-400", "baseHp": 230 },
+      { "id": "shadow_boss_3", "name": "Wurzelgeflecht", "type": "Schatten", "color": "text-emerald-400", "baseHp": 270 }
+    ],
+    "triggerThreshold": 5,
+    "bonuses": { "manaRegen": 1, "goldRegen": 1 }
+  }
+}

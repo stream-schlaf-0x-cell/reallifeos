@@ -1,6 +1,8 @@
 🌌 Tim's Second Brain & RPG: Architektur für Gleichzeitiges Aufblühen
 Ein radikal elastisches Lebens-Betriebssystem, das digitale Souveränität, pädagogische Exzellenz, künstlerische Tiefe und persönliche Entwicklung vereint. Es ist mehr als ein Werkzeug – es ist das Framework für Intelligence Augmentation, gestaltet für Fokus, Klarheit und tiefgreifendes Wachstum.
 
+**Version 2.0 — Evolving One Life Game:** Die Welt existiert erst, wenn man sie betritt. Fog of War, Biome-Evolution, Server-Sync Persistence und robuste Asset-Lade-Logik.
+
 📜 1. Die System-Philosophie (Der innere Antrieb)
 Dieses System existiert nicht zum stumpfen Abarbeiten von To-dos. Es ist die Antwort auf das Paradoxon, alles zugleich zu wollen, ohne an den eigenen Ansprüchen auszubrennen.
 
@@ -8,7 +10,7 @@ Gleichzeitiges Aufblühen: Das absolute Kernziel. Echtes Wachstum passiert paral
 
 Exzellenz statt Mittelmaß: Ein Werkzeug für Wirksamkeit und Tiefe in allen Identitäten (Lehrer, Musiker, Buddhist, Partner). Keine Kompromisse mehr bei der Qualität des eigenen Denkens und Handelns.
 
-Die vier Lebensformer: Das Design des Systems zielt permanent darauf ab, den Willen zu stärken, Zeit bewusst zu designieren, Ressourcen zu vergrößern und den Fokus messerscharf zu trainieren.
+Die vier Lebensformer: Das Design des Systems zielt permanent darauf ab, den Willen zu stärken, Zeit bewusst zu designen, Ressourcen zu vergrößern und den Fokus messerscharf zu trainieren.
 
 Schutz vor Überforderung: Durch mentale Vorbereitung und radikale Klarheit fungiert das System als Schutzschild gegen den Schmerz des "Nicht-Habens" und kognitive Überlastung.
 
@@ -43,7 +45,18 @@ Der Akrobat (Körper & Flow): Physische Belastung (Gym, Laufen) und das Meistern
 
 Der Architekt (Struktur & Tech): Der Baumeister des Systems. Weiterentwicklung der Server-Infrastruktur, Craft-Workflows und KI-Agenten. (Ermöglicht Map-Upgrades)
 
-⚙️ 5. Workflow, Zeit-Management & Zwingende Revision
+🌍 5. Evolving World (v2.0 — NEU)
+Die Welt ist nicht statisch. Sie erwacht zum Leben, wenn der Spieler sie betritt:
+
+**Fog of War:** Nur der Nexus (Start-Tile) ist sichtbar. Alle anderen Tiles liegen im Nebel. Erst durch Erkundung (10 MP pro Tile) entfaltet sich die Welt.
+
+**Biome-System:** Jedes entdeckte Tile gehört zu einem Biom. Ab einem Schwellenwert (z.B. 4 Tiles) trigger eine Biome-Evolution — die KI generiert ein neues Theme (Farben, Atmosphäre) und neue Bosse passend zum Biom.
+
+**Server-Sync Persistence:** Alle Änderungen werden sofort auf dem Relay-Server gespeichert. Das Frontend ist "stateless" und lädt beim Start den aktuellen Zustand. Kein Fortschritt geht verloren.
+
+**FallbackImage:** Der Ordner /data/assets/ ist anfangs leer. Die App zeigt einen animierten Loading-Glitch-Placeholder, bis die KI die Bilder generiert hat. Kein 404-Broken-Image, kein Absturz.
+
+⚙️ 6. Workflow, Zeit-Management & Zwingende Revision
 Skalierbares Commitment: Gestartet wird mit kleinen, extrem machbaren Gewohnheiten. Sobald der Profit (kognitiv oder zeitlich) spürbar wird, skaliert das zeitliche Investment in das System.
 
 Zwingende Revision: Wissen und Strukturen verrotten ohne Pflege. Das System beinhaltet eingebaute Feedback-Schleifen, aktives Abfragen von Wissen (Spaced Repetition) und regelmäßige Meta-Prüfungen der Workflows selbst.

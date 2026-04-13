@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from "react";
 import Icon from "./Icon";
+import FallbackImage from "./FallbackImage";
 
 const UNCOVER_COST = 10;
 
@@ -30,6 +31,11 @@ const WorldMap = ({ gameState, uncoverTile, getPoiInfo, defeatMapBoss }) => {
   const [revealedTile, setRevealedTile] = useState(null);
   const [viewBox, setViewBox] = useState({ x: -300, y: -300, w: 600, h: 600 });
   const HEX_SIZE = 45;
+
+  // Extract biome info from gameState
+  const biomeInfo = gameState.biomeInfo || gameState.worldState?.currentBiome || 'default';
+  const biomeName = typeof biomeInfo === 'object' ? biomeInfo.name : biomeInfo;
+  const serverSynced = gameState.worldState?.serverSynced || false;
 
   const getHexCoords = useCallback((q, r) => {
     const x = HEX_SIZE * Math.sqrt(3) * (q + r / 2);
@@ -105,13 +111,27 @@ const WorldMap = ({ gameState, uncoverTile, getPoiInfo, defeatMapBoss }) => {
         <h2 className="text-lg md:text-xl font-bold flex items-center gap-2" style={{ color: 'var(--path-monk)' }}>
           <Icon name="map" /> Archipel des Geistes
         </h2>
-        <div className="text-[10px] md:text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>
-          {discoveredCount}/{totalCount} entdeckt • {bossTiles.length} Boss active
+        <div className="text-[10px] md:text-xs font-mono flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+          {/* Biome indicator */}
+          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full" style={{
+            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+            border: '1px solid rgba(139, 92, 246, 0.3)',
+            color: 'var(--accent-primary)',
+          }}>
+            🌍 {biomeName}
+          </span>
+          
+          {/* Server sync status */}
+          {serverSynced && (
+            <span title="Mit Server synchronisiert" style={{ color: 'var(--resource-mana)' }}>☁️</span>
+          )}
+          
+          <span>{discoveredCount}/{totalCount} entdeckt • {bossTiles.length} Boss active
           {generatingCount > 0 && (
             <span className="ml-2" style={{ color: 'var(--accent-primary)' }}>
               {generatingCount} generierend...
             </span>
-          )}
+          )}</span>
         </div>
       </div>
 

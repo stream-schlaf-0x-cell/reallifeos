@@ -80,16 +80,17 @@ export default defineConfig({
     }),
   ],
   // ─── Dev Server Proxy ───────────────────────────────────────────────
-  // Forwards /api/ai/* requests to the local relay-api server during development.
-  // In production (Docker), the React app and relay-api share the same network.
+  // Forwards /api/ai/* and /data/* requests to the relay-api container.
+  // In Docker, both containers share the same network.
+  // Locally (outside Docker), set VITE_RELAY_URL env var.
   server: {
     proxy: {
       '/api/ai': {
-        target: 'http://localhost:3100',
+        target: process.env.VITE_RELAY_URL || 'http://reallifeos-relay-api:3100',
         changeOrigin: true,
       },
       '/data': {
-        target: 'http://localhost:3100',
+        target: process.env.VITE_RELAY_URL || 'http://reallifeos-relay-api:3100',
         changeOrigin: true,
       },
     },

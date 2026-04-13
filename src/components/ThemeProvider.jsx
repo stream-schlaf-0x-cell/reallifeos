@@ -1,4 +1,4 @@
-import { useEffect, useState, createContext, useContext } from 'react';
+import { useEffect, useState, createContext, useContext, useCallback } from 'react';
 import { fetchGameData, ThemeSchema } from '../utils/schemas';
 
 // Default theme fallback — matches public/data/theme.json
@@ -50,10 +50,24 @@ export function ThemeProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [fromFallback, setFromFallback] = useState(false);
 
+  // Memoized load function that can be triggered on biome change
+  const loadTheme = useCallback(async () => {
+    const result = await fetchGameData(
+      `/data/theme.json?t=${Date.now()}`, // Cache-bust for biome transitions
+      ThemeSchema,
+      DEFAULT_THEME,
+      'Theme'
+    );
+
+    setTheme(result.data);
+    setFromFallback(result.fromFallback);
+    setLoading(false);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
-    const loadTheme = async () => {
+    const initialLoad = async () => {
       const result = await fetchGameData(
         '/data/theme.json',
         ThemeSchema,
@@ -68,9 +82,20 @@ export function ThemeProvider({ children }) {
       }
     };
 
-    loadTheme();
+    initialLoad();
     return () => { cancelled = true; };
   }, []);
+
+  // Listen for biome transition reload events
+  useEffect(() => {
+    const handleReload = () => {
+      console.log('[Theme] Biome transition reload triggered');
+      loadTheme();
+    };
+
+    window.addEventListener('rls-theme-reload', handleReload);
+    return () => window.removeEventListener('rls-theme-reload', handleReload);
+  }, [loadTheme]);
 
   // Inject CSS variables into :root whenever theme changes
   useEffect(() => {

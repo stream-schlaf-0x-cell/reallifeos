@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import Icon from "./Icon";
+import FallbackImage from "./FallbackImage";
 import { PATH_COLORS } from "../data/constants";
 
 const ACTION_TYPE_STYLES = {
@@ -105,18 +106,44 @@ const BattleArena = ({ gameState, executeAttack, getAvailableActions, clearDamag
 
         {/* Boss Avatar with animations */}
         <div className="w-32 h-32 md:w-48 md:h-48 mb-6 md:mb-8 relative z-10">
-          <div
-            className={`absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-950 rounded-full border-4 border-slate-700 animate-[spin_10s_linear_infinite] shadow-[0_0_50px_rgba(0,0,0,0.5)] ${bossAnim}`}
-          ></div>
-          <div
-            className={`absolute inset-4 bg-gradient-to-tr from-red-900/40 to-purple-900/40 rounded-full animate-[pulse_2s_ease-in-out_infinite]`}
-          ></div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Icon
-              name="eye"
-              className={`w-12 h-12 md:w-16 md:h-16 ${gameState.currentBoss.color} opacity-50`}
-            />
-          </div>
+          {/* Boss image from assets (if available) */}
+          {gameState.currentBoss.imageUrl ? (
+            <div className="absolute inset-0 rounded-full overflow-hidden border-4 border-slate-700 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+              <FallbackImage
+                src={gameState.currentBoss.imageUrl}
+                alt={gameState.currentBoss.name}
+                fallbackIcon={gameState.currentBoss.avatarEmoji || '👹'}
+                className="w-full h-full"
+                pollInterval={3000}
+              />
+            </div>
+          ) : (
+            <>
+              <div
+                className={`absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-950 rounded-full border-4 border-slate-700 animate-[spin_10s_linear_infinite] shadow-[0_0_50px_rgba(0,0,0,0.5)] ${bossAnim}`}
+              ></div>
+              <div
+                className={`absolute inset-4 bg-gradient-to-tr from-red-900/40 to-purple-900/40 rounded-full animate-[pulse_2s_ease-in-out_infinite]`}
+              ></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Icon
+                  name="eye"
+                  className={`w-12 h-12 md:w-16 md:h-16 ${gameState.currentBoss.color} opacity-50`}
+                />
+              </div>
+            </>
+          )}
+          
+          {/* Boss type indicator */}
+          {gameState.currentBoss.type && (
+            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider z-20" style={{
+              backgroundColor: 'rgba(15, 23, 42, 0.9)',
+              border: '1px solid var(--border-primary)',
+              color: 'var(--text-secondary)',
+            }}>
+              {gameState.currentBoss.type}
+            </div>
+          )}
         </div>
 
         {/* Floating Damage Number */}
