@@ -10,7 +10,8 @@
       "Bash(mkdir *)",
       "Bash(timeout *)",
       "Bash(true)",
-      "Bash(cp *)"
+      "Bash(cp *)",
+      "Bash(taskkill *)"
     ]
   },
   "$version": 3

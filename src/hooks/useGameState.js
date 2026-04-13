@@ -408,8 +408,11 @@ export const useGameState = () => {
 
   // Load config on mount
   useEffect(() => {
-    loadGameConfig();
-  }, [loadGameConfig]);
+    if (!configLoadedRef.current) {
+      loadGameConfig();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ─── CROSS-STORE ACTIONS ──────────────────────────────────────────────────────
 
@@ -475,7 +478,7 @@ export const useGameState = () => {
   };
 
   const uncoverTile = (tileIndex) => {
-    const result = worldState.uncoverTile(tileIndex, playerState.movementPoints, playerState.gold);
+    const result = useWorldStore.getState().uncoverTile(tileIndex, playerState.movementPoints, playerState.gold);
 
     if (!result.success) {
       if (result.reason === 'fog_of_war_not_adjacent') {
@@ -490,7 +493,7 @@ export const useGameState = () => {
     usePlayerStore.setState({ movementPoints: Math.max(0, playerState.movementPoints - 10) });
 
     // Recalc POI bonuses
-    const newBonuses = worldState.recalcPoiBonuses();
+    const newBonuses = useWorldStore.getState().recalcPoiBonuses();
     playerState.setPoiBonuses(newBonuses);
 
     playerState.showToast('Tile enthüllt!', 'success');
@@ -501,7 +504,7 @@ export const useGameState = () => {
     const updatedWorldState = useWorldStore.getState().worldState;
     const updatedMapData = useWorldStore.getState().mapData;
     const updatedDefeatedBosses = useWorldStore.getState().defeatedBosses;
-    
+
     saveStateToServer(updatedWorldState, updatedMapData, updatedDefeatedBosses)
       .then(saveResult => {
         if (saveResult.success) {
@@ -515,13 +518,13 @@ export const useGameState = () => {
       });
 
     // Check if this tile triggers biome transition
-    const tile = worldState.mapData.tiles[tileIndex];
+    const tile = useWorldStore.getState().mapData.tiles[tileIndex];
     if (tile) {
-      const biomeCheck = worldState.checkBiomeTransition(tileIndex);
+      const biomeCheck = useWorldStore.getState().checkBiomeTransition(tileIndex);
       if (biomeCheck.shouldTransition) {
         handleBiomeEvolution(biomeCheck, tileIndex);
       }
-      
+
       // Trigger generative tile generation for edge tiles
       checkAndTriggerTileGeneration(tile);
     }
@@ -531,9 +534,11 @@ export const useGameState = () => {
    * HANDLER: Biome-Evolution beim Erreichen des Schwellenwerts
    */
   const handleBiomeEvolution = useCallback(async (biomeCheck, tileIndex) => {
-    const currentBiome = worldState.worldState.currentBiome;
-    const tile = worldState.mapData.tiles[tileIndex];
-    
+    const currentBiome = useWorldStore.getState().worldState.currentBiome;
+    const tiles = useWorldStore.getState().mapData.tiles;
+    const tile = tiles[tileIndex];
+    const lvl = usePlayerStore.getState().level;
+
     console.log(`[Biome] Evolution check: ${currentBiome} → discovered ${biomeCheck.discoveredCount} tiles`);
 
     // Get available biomes (excluding current)
@@ -542,13 +547,13 @@ export const useGameState = () => {
 
     // Randomly select next biome
     const nextBiome = availableBiomes[Math.floor(Math.random() * availableBiomes.length)];
-    
+
     console.log(`[Biome] Triggering evolution to: ${nextBiome.name}`);
 
     // Update worldState with transition coords
     useWorldStore.setState({
       worldState: {
-        ...worldState.worldState,
+        ...useWorldStore.getState().worldState,
         lastBiomeTriggerCoords: { q: tile.q, r: tile.r },
       },
     });
@@ -557,11 +562,11 @@ export const useGameState = () => {
     const evolutionResult = await triggerBiomeEvolution(
       currentBiome,
       { q: tile.q, r: tile.r },
-      playerState.level
+      lvl
     );
 
     if (evolutionResult.success) {
-      playerState.showToast(
+      usePlayerStore.getState().showToast(
         `🌍 Biom-Evolution: ${nextBiome.name} wird generiert...`,
         'success'
       );
@@ -573,7 +578,7 @@ export const useGameState = () => {
         window.dispatchEvent(new CustomEvent('rls-theme-reload'));
       }, 2000);
     }
-  }, [worldState.worldState.currentBiome, worldState.mapData.tiles, playerState.level]);
+  }, [loadGameConfig]);
 
   /**
    * Checks if a newly revealed tile is on the "edge" of the known map
@@ -585,12 +590,15 @@ export const useGameState = () => {
       [1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]
     ];
 
+    // Read current tiles from store (not from closure)
+    const currentTiles = useWorldStore.getState().mapData.tiles;
+
     directions.forEach(([dq, dr]) => {
       const nq = tile.q + dq;
       const nr = tile.r + dr;
 
       // Check if adjacent tile exists in current map
-      const adjacentExists = worldState.mapData.tiles.some(
+      const adjacentExists = currentTiles.some(
         (t) => t.q === nq && t.r === nr
       );
 
@@ -633,7 +641,7 @@ export const useGameState = () => {
         console.log(`[GenerativeMap] Triggered AI generation for tile [${nq},${nr}]`);
       }
     });
-  }, [worldState.mapData.tiles]);
+  }, []);
 
   const defeatMapBoss = (tileIndex) => {
     worldState.defeatMapBoss(tileIndex);

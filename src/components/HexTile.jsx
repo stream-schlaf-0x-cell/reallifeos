@@ -26,13 +26,17 @@ export default function HexTile({ tile, colors, isPlayerHere, onClick }) {
 
   useFrame((_, delta) => {
     if (!groupRef.current) return;
+    // Clamp delta to avoid huge jumps
+    const clampedDelta = Math.min(delta, 0.1);
     const speed = tile.discovered ? 4 : 2;
     const t = targetY;
-    groupRef.current.position.y += (t - groupRef.current.position.y) * Math.min(delta * speed, 1);
-    // Clamp wenn sehr nah am Ziel
-    if (Math.abs(groupRef.current.position.y - t) < 0.001) {
+    const diff = t - groupRef.current.position.y;
+    // Only animate if there's meaningful distance left
+    if (Math.abs(diff) < 0.001) {
       groupRef.current.position.y = t;
+      return;
     }
+    groupRef.current.position.y += diff * Math.min(clampedDelta * speed, 1);
   });
 
   // Farben

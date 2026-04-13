@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { useWorldStore } from '../stores/useWorldStore';
 import { useBiomeColors } from '../hooks/useBiomeColors';
+import { ErrorBoundary } from './ErrorBoundary';
 import HexTile from './HexTile';
 import TileBillboard from './TileBillboard';
 
@@ -18,9 +19,10 @@ export default function WorldMap3D() {
   const tiles = useWorldStore((state) => state.mapData.tiles);
   const playerPos = useWorldStore((state) => state.mapData.playerPosition);
   const worldState = useWorldStore((state) => state.worldState);
-  const uncoverTile = useWorldStore((state) => state.uncoverTile);
-  const defeatMapBoss = useWorldStore((state) => state.defeatMapBoss);
-  const poiBonuses = useWorldStore((state) => state.recalcPoiBonuses());
+  const recalcPoiBonuses = useWorldStore((state) => state.recalcPoiBonuses);
+
+  // Memoized POI bonuses
+  const poiBonuses = useMemo(() => recalcPoiBonuses(), [recalcPoiBonuses]);
 
   const colors = useBiomeColors();
 
@@ -35,28 +37,30 @@ export default function WorldMap3D() {
   const generatingCount = tiles.filter((t) => t.generating).length;
   const bossTiles = tiles.filter((t) => t.mapBoss && !t.mapBoss.defeated);
 
-  // Tile-Click Handler
+  // Tile-Click Handler – stabil ohne tiles Dependency
   const handleTileClick = useCallback(
     (index) => {
-      const tile = tiles[index];
+      const currentTiles = useWorldStore.getState().mapData.tiles;
+      const tile = currentTiles[index];
       if (tile && !tile.discovered && !tile.generating) {
-        uncoverTile(index);
+        useWorldStore.getState().uncoverTile(index);
       }
     },
-    [tiles, uncoverTile]
+    []
   );
 
-  // Boss-Click Handler
+  // Boss-Click Handler – stabil ohne tiles Dependency
   const handleBossClick = useCallback(
     (tileIndex) => {
-      const tile = tiles[tileIndex];
+      const currentTiles = useWorldStore.getState().mapData.tiles;
+      const tile = currentTiles[tileIndex];
       if (tile?.mapBoss && !tile.mapBoss.defeated) {
         if (window.confirm(`⚔️ ${tile.mapBoss.name} angreifen?`)) {
-          defeatMapBoss(tileIndex);
+          useWorldStore.getState().defeatMapBoss(tileIndex);
         }
       }
     },
-    [tiles, defeatMapBoss]
+    []
   );
 
   // Tiles mit Index anreichern
@@ -167,11 +171,12 @@ export default function WorldMap3D() {
           borderColor: 'var(--border-secondary)',
         }}
       >
-        <Canvas
-          camera={{ position: [0, 18, 18], fov: 45, near: 0.1, far: 200 }}
-          style={{ width: '100%', height: '100%' }}
-          dpr={[1, 2]}
-        >
+        <ErrorBoundary>
+          <Canvas
+            camera={{ position: [0, 18, 18], fov: 45, near: 0.1, far: 200 }}
+            style={{ width: '100%', height: '100%' }}
+            dpr={[1, 2]}
+          >
           {/* Licht */}
           <ambientLight intensity={0.4} color="#c8d6e5" />
           <directionalLight
@@ -231,6 +236,7 @@ export default function WorldMap3D() {
             panSpeed={0.5}
           />
         </Canvas>
+        </ErrorBoundary>
 
         {/* ─── Info Overlay ──────────────────────────────────────── */}
         <div
