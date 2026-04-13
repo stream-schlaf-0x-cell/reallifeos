@@ -1,29 +1,30 @@
 import React, { useRef } from 'react';
 import { ContactShadows } from '@react-three/drei';
-import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
+import { EffectComposer, Bloom, TiltShift2, GodRays, Vignette } from '@react-three/postprocessing';
 
 /**
  * MapOrchestrator – Zentrales Scene-Management.
  *
  * Bündelt:
- * - Beleuchtung (Ambient + Directional + Point)
+ * - Beleuchtung (Ambient + Directional + Hemisphere + Point)
  * - ContactShadows für Bodenschatten
- * - Bloom Post-Processing für emissive Materialien
- * - Vignette für cinematographischen Look
+ * - Post-Processing: Bloom, TiltShift (DOF), GodRays, Vignette
  */
 export default function MapOrchestrator() {
-  const shadowRef = useRef();
+  const godRaysRef = useRef();
+  const sunRef = useRef();
 
   return (
     <>
       {/* ═══ BELEUCHTUNG ═══ */}
-      {/* Weiches Umgebungslicht */}
-      <ambientLight intensity={0.35} color="#c8d6e5" />
+      {/* Warmes Umgebungslicht */}
+      <ambientLight intensity={0.3} color="#c8d6e5" />
 
-      {/* Hauptlicht – warm, von oben-rechts */}
+      {/* Hauptlicht – warm, von oben-rechts (auch GodRays-Quelle) */}
       <directionalLight
+        ref={sunRef}
         position={[12, 20, 8]}
-        intensity={0.9}
+        intensity={0.8}
         color="#fff4e6"
         castShadow
         shadow-mapSize-width={1024}
@@ -53,17 +54,13 @@ export default function MapOrchestrator() {
         decay={2}
       />
 
-      {/* Hemisphere Light für natürliche Himmelsfarbe */}
-      <hemisphereLight
-        args={['#87ceeb', '#362a1a', 0.2]}
-      />
+      {/* Hemisphere Light für natürliche Himmels-/Bodenfarbe */}
+      <hemisphereLight args={['#87ceeb', '#362a1a', 0.15]} />
 
       {/* ═══ SCHATTEN ═══ */}
-      {/* ContactShadows – weiche Kontakt-Schatten auf dem Boden */}
       <ContactShadows
-        ref={shadowRef}
         position={[0, -3.05, 0]}
-        opacity={0.5}
+        opacity={0.45}
         scale={40}
         blur={2.5}
         far={6}
@@ -74,22 +71,39 @@ export default function MapOrchestrator() {
       {/* ═══ POST-PROCESSING ═══ */}
       <EffectComposer
         disableNormalPass
-        multisampling={4}
+        multisampling={2}
       >
-        {/* Bloom – Glow für alle emissive Materialien */}
+        {/* Bloom – selektiver Glow für emissive Materialien */}
         <Bloom
-          intensity={0.6}
-          luminanceThreshold={0.15}
-          luminanceSmoothing={0.9}
+          intensity={0.5}
+          luminanceThreshold={0.2}
+          luminanceSmoothing={0.92}
           mipmapBlur
-          radius={0.4}
+          radius={0.35}
+        />
+
+        {/* Tilt-Shift / Miniature DOF – Diorama-Effekt */}
+        <TiltShift2
+          blur={0.15}
+        />
+
+        {/* GodRays – Volumetrisches Licht von der Sonne */}
+        <GodRays
+          ref={godRaysRef}
+          sun={sunRef}
+          samples={40}
+          density={0.9}
+          decay={0.96}
+          weight={0.4}
+          exposure={0.12}
+          clampMax={1.0}
         />
 
         {/* Vignette – dunkle Ränder für Film-Look */}
         <Vignette
           eskil={false}
-          offset={0.1}
-          darkness={0.5}
+          offset={0.12}
+          darkness={0.45}
         />
       </EffectComposer>
 
@@ -97,7 +111,7 @@ export default function MapOrchestrator() {
       <color attach="background" args={['#020617']} />
 
       {/* Atmosphärischer Nebel */}
-      <fog attach="fog" args={['#020617', 20, 50]} />
+      <fog attach="fog" args={['#020617', 22, 55]} />
     </>
   );
 }

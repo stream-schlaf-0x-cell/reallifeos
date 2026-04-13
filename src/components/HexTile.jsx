@@ -1,6 +1,7 @@
 import React, { useRef, useMemo, useState, useCallback } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { axialToCartesian, getTileHeight } from '../hooks/useHexGrid';
+import { axialToCartesian } from '../hooks/useHexGrid';
+import { getTerrainHeight } from '../utils/TerrainNoise';
 import { hexToThreeColor } from '../hooks/useBiomeColors';
 
 /**
@@ -17,7 +18,7 @@ export default function HexTile({ tile, colors, isPlayerHere, onClick }) {
   const [hovered, setHovered] = useState(false);
 
   // Höhe & Position
-  const height = getTileHeight(tile.type, tile.q, tile.r);
+  const height = getTerrainHeight(tile.q, tile.r, tile.type);
   const cartPos = useMemo(() => axialToCartesian(tile.q, tile.r, 0), [tile.q, tile.r]);
 
   // Animation

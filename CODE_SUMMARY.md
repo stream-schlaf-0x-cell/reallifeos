@@ -1,7 +1,7 @@
 # RealLifeOS - Code Zusammenfassung
 
 Generiert am: Montag, 13. April 2026
-**Letztes Update:** Evolving One Life Game (v2.0) — Prozedurale Map, Biome-System, Server-Sync
+**Letztes Update:** Immersive 3D World v3.1 – InstancedMesh, Simplex Noise, Post-Processing
 
 ## 📁 Verzeichnisstruktur
 
@@ -98,6 +98,12 @@ Generiert am: Montag, 13. April 2026
   "dependencies": {
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "three": "*",
+    "@react-three/fiber": "*",
+    "@react-three/drei": "*",
+    "@react-three/postprocessing": "*",
+    "simplex-noise": "*",
+    "maath": "*",
     "vite-plugin-pwa": "^1.2.0",
     "workbox-window": "^7.4.0",
     "zod": "^4.3.6",
@@ -184,7 +190,15 @@ Das Projekt wurde von einem monolithischen `useGameState` Hook auf **Zustand** m
 |-------|-------------|-----------|
 | **usePlayerStore** | `player-store` | Level, XP, SP, MP, Gold, Mana, Custom Quests, Log, POI-Boni, Toast |
 | **useSkillStore** | `skill-store` | Skills (flattened), Freischaltungen, Custom Skills |
-| **useWorldStore** | `world-store` | Map-Tiles, Boss HP, Shield, Combat-Log, Defeated Bosses |
+| **useWorldStore** | `world-store` | Map-Tiles, Boss HP, Shield, Combat-Log, Defeated Bosses, **Infinite Map (`addRingToMap`)** |
+
+### Neue Hooks (v3.0)
+
+| Hook | Zweck |
+|------|-------|
+| **useHexGrid.js** | Axiale `(q,r)` → kartesische `(x,y,z)` Konversion, prozedurale Höhenberechnung |
+| **useBiomeColors.js** | Liest Theme-Farben aus CSS-Variablen, konvertiert zu Three.js RGB |
+| **useInfiniteMap.js** | Überwacht Spielerposition, generiert automatisch neue Hex-Ringe am Kartenrand |
 
 ### Migration von Legacy-Daten
 
@@ -248,8 +262,64 @@ CSS-Variablen werden genutzt via: `bg-[color:var(--bg-primary)]`, `text-[color:v
 - UNLOCK ALL SKILLS, REVEAL ALL TILES, DEFEAT BOSS
 - Nur sichtbar wenn `devMode === true`
 
-### Header.jsx, Navigation.jsx, Layout.jsx, Quests.jsx, SkillTree.jsx, WorldMap.jsx
+### Header.jsx, Navigation.jsx, Layout.jsx, Quests.jsx, SkillTree.jsx
 - Bestehende Komponenten, aktualisiert für neues State-Management
+
+---
+
+## 🌍 3D World Komponenten (v3.1 — Instanced Mesh Architecture)
+
+### InstancedHexGrid.jsx – Instanced Tile Renderer
+- Nutzt drei `<Instances>` (intern InstancedMesh) für alle Hex-Tiles
+- **Zwei InstancedMeshes:** Körper + Top-Fläche
+- Reveal-Animation direkt über Instance-Matrizen in useFrame (kein React re-render)
+- Raycasting pro Instance für Tile-Klicks
+- O(1) Render-Kosten unabhängig von Tile-Anzahl
+
+### InstancedDecor.jsx – Instanced Landschafts-Deko
+- Pro Tile-Typ separate Instances: Bäume, Kristalle, Lotos, Bücher, Musiknoten
+- Shared Geometries für minimale Memory-Nutzung
+
+### TerrainNoise.js – Simplex Noise Heightmap
+- Multi-Octave Simplex Noise (3 Octaven) für organische Hügel/Täler
+- Deterministisch per Session-Seed + Mulberry32 PRNG
+- Tile-Typ-spezifische Höhen-Modifier
+
+### MapOrchestrator.jsx – Scene-Management + Post-Processing
+- **Bloom** (intensity: 0.5) – selektiver Glow für emissive Materialien
+- **TiltShift2** – Miniature/Diorama DOF-Effekt
+- **GodRays** – Volumetrisches Licht von DirectionalLight
+- **Vignette** – cinematographische Ränder
+- 5-Light Setup + ContactShadows
+
+### PlayerAvatar.jsx – Momentum-basierter Avatar
+- Exponential Smoothing (`lerpFactor = 1 - Math.pow(0.05, dt)`) statt Teleportation
+- Gleitet sanft zur Zielposition mit kontinuierlicher Hover-Animation
+
+### FollowCamera.jsx – Smooth Kamera-Verfolgung
+- Exponential Smoothing für Position + Quaternion-Slerp für LookAt
+- Getrennte Lerp-Raten: Position (schneller) vs. LookAt (cinematischer)
+
+### TileArtifact.jsx – KI-Bilder als Rune-Planes
+- Zoom-Opacity: Distanz < 7 = 0%, 7-13 = linear, > 13 = 85%
+- sRGBColorSpace + Anisotropy für scharfe Texturen
+
+### AtmosphericDetails.jsx – Mikro-Partikel
+- **AmbientDust:** 150 lila Partikel (AdditiveBlending, driftend)
+- **FloatingSpores:** 60 goldene Partikel (aufsteigend)
+- Deterministischer PRNG (React-purity compliance)
+
+### WorldMap3D.jsx – Hauptkomponente
+- Integriert alle oben genannten Komponenten
+- Header mit Biome-Indicator, Server-Sync, Tile-Stats
+- POI-Bonuses-Bar, Info-Overlay, ErrorBoundary
+
+### HexShaderMaterial.js – Custom Shader (vorbereitet)
+- Vertex/Fragment Shader mit instanceColor, instanceReveal Attributen
+- Biome-Blending und Fog-of-War Animation via Shader
+
+### ErrorBoundary.jsx, TileBillboard.jsx, TileDecorator.jsx
+- Bestehende Komponenten, kompatibel mit Instanced Rendering
 
 ---
 

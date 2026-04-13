@@ -1,7 +1,8 @@
 import React, { useRef, useMemo, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
-import { axialToCartesian, getTileHeight } from '../hooks/useHexGrid';
+import { axialToCartesian } from '../hooks/useHexGrid';
+import { getTerrainHeight } from '../utils/TerrainNoise';
 import * as THREE from 'three';
 
 /**
@@ -12,7 +13,7 @@ import * as THREE from 'three';
  */
 export default function TileBillboard({ tile, colors, isPlayerHere, onBossClick }) {
   const cartPos = useMemo(() => axialToCartesian(tile.q, tile.r, 0), [tile.q, tile.r]);
-  const height = getTileHeight(tile.type, tile.q, tile.r);
+  const height = getTerrainHeight(tile.q, tile.r, tile.type);
 
   if (!tile.discovered && !tile.generating) return null;
 

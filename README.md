@@ -1,7 +1,7 @@
 🌌 Tim's Second Brain & RPG: Architektur für Gleichzeitiges Aufblühen
 Ein radikal elastisches Lebens-Betriebssystem, das digitale Souveränität, pädagogische Exzellenz, künstlerische Tiefe und persönliche Entwicklung vereint. Es ist mehr als ein Werkzeug – es ist das Framework für Intelligence Augmentation, gestaltet für Fokus, Klarheit und tiefgreifendes Wachstum.
 
-**Version 3.0 — Immersive 3D World:** Vollständige 3D-Hex-Landschaft mit react-three-fiber, PlayerAvatar, Bloom-Effekten, Infinite Map und Artefakt-Bildern.
+**Version 3.1 — AAA-Indie 3D World:** InstancedMesh-Rendering, Simplex Noise Terrain, GodRays, TiltShift DOF, Atmospheric Particles, Momentum-basierte Kamera.
 
 📜 1. Die System-Philosophie (Der innere Antrieb)
 Dieses System existiert nicht zum stumpfen Abarbeiten von To-dos. Es ist die Antwort auf das Paradoxon, alles zugleich zu wollen, ohne an den eigenen Ansprüchen auszubrennen.
@@ -45,16 +45,32 @@ Der Akrobat (Körper & Flow): Physische Belastung (Gym, Laufen) und das Meistern
 
 Der Architekt (Struktur & Tech): Der Baumeister des Systems. Weiterentwicklung der Server-Infrastruktur, Craft-Workflows und KI-Agenten. (Ermöglicht Map-Upgrades)
 
-🌍 5. Evolving World (v2.0 — NEU)
-Die Welt ist nicht statisch. Sie erwacht zum Leben, wenn der Spieler sie betritt:
+🌍 5. Immersive 3D World (v3.0 — NEU)
+Die Welt ist jetzt eine vollwertige 3D-Landschaft im Dorfromantik-Stil:
 
-**Fog of War:** Nur der Nexus (Start-Tile) ist sichtbar. Alle anderen Tiles liegen im Nebel. Erst durch Erkundung (10 MP pro Tile) entfaltet sich die Welt.
+**3D-Hexagon-Landschaft:** Jedes Tile ist ein 3D-Zylinder (6 Segmente) mit prozeduraler Höhe, biome-basierten Farben aus theme.json und Wireframe-Edges mit Emissive-Glow.
 
-**Biome-System:** Jedes entdeckte Tile gehört zu einem Biom. Ab einem Schwellenwert (z.B. 4 Tiles) trigger eine Biome-Evolution — die KI generiert ein neues Theme (Farben, Atmosphäre) und neue Bosse passend zum Biom.
+**PlayerAvatar:** Ein schwebender Low-Poly-Monk (Oktaeder-Diamant mit Kreuz-Symbol) pulsiert über der Spielerposition und dient als Kamera-Anker.
 
-**Server-Sync Persistence:** Alle Änderungen werden sofort auf dem Relay-Server gespeichert. Das Frontend ist "stateless" und lädt beim Start den aktuellen Zustand. Kein Fortschritt geht verloren.
+**FollowCamera:** Die Kamera folgt dem Avatar sanft per Lerp-Animation – keine starre Perspektive mehr, sondern ein organisches Mitfliegen.
 
-**FallbackImage:** Der Ordner /data/assets/ ist anfangs leer. Die App zeigt einen animierten Loading-Glitch-Placeholder, bis die KI die Bilder generiert hat. Kein 404-Broken-Image, kein Absturz.
+**TileDecorator:** Landschafts-Objekte pro Tile-Typ – Bäume (Kegel) in der Wildnis, Kristalle (Oktaeder) am Nexus, Lotos-Blüten (Torus) im Kloster, Hanteln im Gym, etc. Alle animieren beim Aufdecken mit Spring-Skalierung.
+
+**TileArtifact:** KI-Bilder werden als kleine, leuchtende Plane-Texturen direkt auf die Hex-Oberfläche gerendert – wie eingefasste Runen. Zoom-Logik: Bei Nah-Zoom reduziert sich die Opazität automatisch.
+
+**Infinite Map:** Kein Tile-Limit mehr. Wenn sich der Spieler dem Kartenrand nähert, generiert `addRingToMap()` automatisch den nächsten Hex-Ring mit gewichteten POI-Typen und Boss-Chancen.
+
+**Bloom Post-Processing:** Alle emissiven Materialien (Tile-Edges, Avatar, Artefakte, Boss-Ringe) glühen durch den Bloom-Effekt. Vignette rundet den cinematographischen Look ab.
+
+**ContactShadows:** Weiche Kontakt-Schatten auf dem Boden verbinden die Objekte visuell mit der Landschaft.
+
+**Fog of War (3D):** Unentdeckte Tiles starten bei `y = -3` und fahren elegant nach oben wenn sie aufgedeckt werden.
+
+**Biome-System:** Jedes entdeckte Tile gehört zu einem Biom. Ab einem Schwellenwert trigger eine Biome-Evolution — die KI generiert ein neues Theme (Farben, Atmosphäre) und neue Bosse.
+
+**Server-Sync Persistence:** Alle Änderungen werden sofort auf dem Relay-Server gespeichert.
+
+**FallbackImage:** Der Ordner /data/assets/ ist anfangs leer. Die App zeigt animierte Loading-Placeholder bis die KI die Bilder generiert hat.
 
 ⚙️ 6. Workflow, Zeit-Management & Zwingende Revision
 Skalierbares Commitment: Gestartet wird mit kleinen, extrem machbaren Gewohnheiten. Sobald der Profit (kognitiv oder zeitlich) spürbar wird, skaliert das zeitliche Investment in das System.

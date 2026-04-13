@@ -2,7 +2,10 @@
  * useHexGrid – Wandelt axiale Hex-Koordinaten (q, r) in kartesische 3D-Positionen um.
  *
  * Pointy-top Hexagon mit flacher Y-Achse (XZ-Ebene in Three.js).
- * y wird später für die prozedurale Höhe genutzt.
+ *
+ * ACHTUNG: Die Höhenberechnung wurde auf Simplex Noise migriert.
+ * Siehe utils/TerrainNoise.js für getTerrainHeight().
+ * Diese Datei enthält nur die axiale Konversion.
  */
 import { useMemo } from 'react';
 
@@ -28,29 +31,6 @@ export function useHexGrid(tiles) {
       return { ...tile, x: pos.x, y: pos.y, z: pos.z };
     });
   }, [tiles]);
-}
-
-/**
- * Berechnet prozedurale Höhe basierend auf Tile-Typ und einem einfachen Hash.
- * Erzeugt organische Landschaft ohne externe Rausch-Bibliothek.
- */
-export function getTileHeight(tileType, q, r) {
-  // Einfacher deterministischer "Noise" aus Koordinaten + Typ
-  const hash = ((q * 374761393 + r * 668265263) & 0x7fffffff) / 0x7fffffff;
-  const baseHeight = hash * 0.4; // 0–0.4 Variation
-
-  // Biome/Typ-Bonus: bestimmte Typen sind leicht erhöht
-  const typeHeight = {
-    nexus: 0.6,
-    monastery: 0.3,
-    academy: 0.2,
-    gym: 0.35,
-    studio: 0.25,
-    server: 0.15,
-    wilds: 0.1,
-  };
-
-  return baseHeight + (typeHeight[tileType] || 0);
 }
 
 export { HEX_SIZE };

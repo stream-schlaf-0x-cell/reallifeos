@@ -88,10 +88,14 @@ export default defineConfig({
       '/api/ai': {
         target: process.env.VITE_RELAY_URL || 'http://reallifeos-relay-api:3100',
         changeOrigin: true,
+        timeout: 180000,          // 3 Minuten — Dify braucht ~80s für 3 Bilder
+        proxyTimeout: 180000,     // 3 Minuten — sonst Vite bricht vorher ab
       },
       '/data': {
         target: process.env.VITE_RELAY_URL || 'http://reallifeos-relay-api:3100',
         changeOrigin: true,
+        timeout: 180000,
+        proxyTimeout: 180000,
       },
     },
   },

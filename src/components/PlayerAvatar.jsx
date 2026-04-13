@@ -1,33 +1,48 @@
 import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { axialToCartesian, getTileHeight } from '../hooks/useHexGrid';
+import { axialToCartesian } from '../hooks/useHexGrid';
+import { getTerrainHeight } from '../utils/TerrainNoise';
 import { hexToThreeColor } from '../hooks/useBiomeColors';
+import * as THREE from 'three';
 
 /**
- * PlayerAvatar – Schwebender Low-Poly Monk (Oktaeder-Diamant).
+ * PlayerAvatar – Schwebender Low-Poly Monk mit Momentum-basierter Bewegung.
  *
- * Hängt über dem playerPosition-Tile, rotiert sanft und pulsiert.
- * Der Avatar dient als visueller Anker und Kamera-Zielpunkt.
+ * Statt zu teleportieren, gleitet der Avatar sanft zur Zielposition.
+ * Kontinuierliche Hover-Animation + Rotation.
  */
 export default function PlayerAvatar({ playerPos, colors }) {
   const groupRef = useRef();
   const innerRef = useRef();
 
+  // Smooth position tracking
+  const currentPos = useRef(new THREE.Vector3(0, 3, 0));
+
   const cartPos = useMemo(() => {
-    const height = getTileHeight('nexus', playerPos.q, playerPos.r);
+    const height = getTerrainHeight(playerPos.q, playerPos.r, 'nexus');
     return axialToCartesian(playerPos.q, playerPos.r, height);
   }, [playerPos.q, playerPos.r]);
 
   const avatarColor = useMemo(() => hexToThreeColor(colors.playerRing), [colors]);
-  const glowColor = useMemo(() => hexToThreeColor(colors.playerRing).map(c => c * 0.5), [colors]);
 
-  // Floating animation
-  useFrame(({ clock }) => {
+  useFrame((_, delta) => {
     if (!groupRef.current) return;
-    const t = clock.getElapsedTime();
-    // Sanftes Schweben
-    groupRef.current.position.y = cartPos.y + 1.8 + Math.sin(t * 1.5) * 0.25;
-    // Langsame Rotation
+
+    const dt = Math.min(delta, 0.05);
+    const t = performance.now() / 1000;
+
+    // Zielposition: Über dem Tile + Hover
+    const targetY = cartPos.y + 1.8 + Math.sin(t * 1.5) * 0.25;
+
+    // Smooth position lerp (Momentum)
+    const lerpFactor = 1 - Math.pow(0.05, dt);
+    currentPos.current.x += (cartPos.x - currentPos.current.x) * lerpFactor * 0.08;
+    currentPos.current.y += (targetY - currentPos.current.y) * lerpFactor * 0.08;
+    currentPos.current.z += (cartPos.z - currentPos.current.z) * lerpFactor * 0.08;
+
+    groupRef.current.position.copy(currentPos.current);
+
+    // Inner rotation
     if (innerRef.current) {
       innerRef.current.rotation.y = t * 0.8;
       innerRef.current.rotation.x = Math.sin(t * 0.5) * 0.15;
@@ -35,22 +50,23 @@ export default function PlayerAvatar({ playerPos, colors }) {
   });
 
   return (
-    <group ref={groupRef} position={[cartPos.x, cartPos.y + 1.8, cartPos.z]}>
-      {/* Outer glow sphere (transparent) */}
+    <group ref={groupRef}>
+      {/* Outer glow */}
       <mesh>
         <sphereGeometry args={[0.7, 8, 6]} />
         <meshStandardMaterial
-          color={glowColor}
+          color={avatarColor.map(c => c * 0.5)}
           emissive={avatarColor}
           emissiveIntensity={0.6}
           transparent
           opacity={0.15}
           roughness={1}
           metalness={0}
+          depthWrite={false}
         />
       </mesh>
 
-      {/* Haupt-Diamant (Oktaeder) */}
+      {/* Haupt-Diamant */}
       <group ref={innerRef}>
         <mesh castShadow>
           <octahedronGeometry args={[0.35, 0]} />
@@ -63,7 +79,7 @@ export default function PlayerAvatar({ playerPos, colors }) {
           />
         </mesh>
 
-        {/* Inneres Kreuz – Monk Symbol */}
+        {/* Kreuz-Symbol */}
         <mesh rotation={[0, Math.PI / 4, 0]}>
           <boxGeometry args={[0.5, 0.06, 0.06]} />
           <meshStandardMaterial
@@ -86,7 +102,7 @@ export default function PlayerAvatar({ playerPos, colors }) {
         </mesh>
       </group>
 
-      {/* Point Light am Avatar */}
+      {/* Point Light */}
       <pointLight
         position={[0, 0, 0]}
         color={avatarColor}
@@ -96,7 +112,10 @@ export default function PlayerAvatar({ playerPos, colors }) {
       />
 
       {/* Bodenschatten */}
-      <mesh position={[0, -cartPos.y - 1.8, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh
+        position={[0, -1.5, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+      >
         <circleGeometry args={[0.6, 16]} />
         <meshBasicMaterial
           color={avatarColor}

@@ -1,28 +1,27 @@
 import React, { useRef, useMemo, useState, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { axialToCartesian } from '../hooks/useHexGrid';
+import { getTerrainHeight } from '../utils/TerrainNoise';
 import * as THREE from 'three';
-import { axialToCartesian, getTileHeight } from '../hooks/useHexGrid';
 
 /**
- * TileArtifact – KI-Bilder als kleine leuchtende Plane-Texturen auf der Hex-Oberfläche.
+ * TileArtifact – KI-Bilder als kleine leuchtende Plane-Texturen.
  *
- * STATT großer Html-Billboards werden Bilder als Rune/Artefakt in die
- * Tile-Oberfläche eingelassen. Sie sind maximal halb so groß wie das Hex.
- *
- * Zoom-Logik: Bei Nah-Zoom (camera distance < threshold) wird die Opazität
- * reduziert um die Sicht nicht zu blockieren.
+ * Nutzt drei's useTexture für automatisches Texture-Management.
+ * Zoom-basierte Opazität: Nah = transparent, Fern = sichtbar.
  */
 export default function TileArtifact({ tile }) {
   const meshRef = useRef();
   const glowRef = useRef();
-  const [texture, setTexture] = useState(null);
-  const [opacity, setOpacity] = useState(0);
 
   const cartPos = useMemo(
     () => axialToCartesian(tile.q, tile.r, 0),
     [tile.q, tile.r]
   );
-  const height = getTileHeight(tile.type, tile.q, tile.r);
+  const height = useMemo(
+    () => getTerrainHeight(tile.q, tile.r, tile.type),
+    [tile.q, tile.r, tile.type]
+  );
 
   // Asset-URL
   const assetSrc = useMemo(
@@ -30,13 +29,14 @@ export default function TileArtifact({ tile }) {
     [tile.type, tile.q, tile.r]
   );
 
-  // Texture manuell laden
+  // Texture laden via drei (automatisches Caching + Error-Handling)
+  const [texture, setTexture] = useState(null);
+
   useEffect(() => {
     if (!assetSrc || !tile.discovered) return;
-
     let cancelled = false;
-    const loader = new THREE.TextureLoader();
 
+    const loader = new THREE.TextureLoader();
     loader.load(
       assetSrc,
       (tex) => {
@@ -44,61 +44,61 @@ export default function TileArtifact({ tile }) {
           tex.colorSpace = THREE.SRGBColorSpace;
           tex.minFilter = THREE.LinearMipmapLinearFilter;
           tex.magFilter = THREE.LinearFilter;
+          tex.anisotropy = 4;
           setTexture(tex);
         }
       },
       undefined,
-      () => {
-        // Error – silently ignore
-      }
+      () => {} // Error – silent
     );
 
-    return () => {
-      cancelled = true;
-    };
-  }, [assetSrc, tile.discovered, tile.type, tile.q, tile.r]);
+    return () => { cancelled = true; };
+  }, [assetSrc, tile.discovered]);
 
   // Zoom-basierte Opazität
   useFrame(({ camera }) => {
     if (!meshRef.current) return;
 
-    const dx = camera.position.x - meshRef.current.position.x;
-    const dy = camera.position.y - meshRef.current.position.y;
-    const dz = camera.position.z - meshRef.current.position.z;
-    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    const dist = meshRef.current.position.distanceTo(camera.position);
 
-    // Opazität: Nah (< 8): 0  |  Mittel (8-14): linear  |  Fern (> 14): 0.8
-    const nearT = 8;
-    const farT = 14;
-    let op = 0.8;
-    if (dist < nearT) op = 0;
-    else if (dist < farT) op = 0.8 * ((dist - nearT) / (farT - nearT));
+    // Nah (< 7): 0%  |  Mittel (7-13): linear  |  Fern (> 13): 85%
+    let op = 0.85;
+    if (dist < 7) op = 0;
+    else if (dist < 13) op = 0.85 * ((dist - 7) / (13 - 7));
 
-    setOpacity(op);
+    if (meshRef.current.material) {
+      meshRef.current.material.opacity = op;
+    }
+    if (glowRef.current && glowRef.current.material) {
+      glowRef.current.material.opacity = op * 0.5;
+    }
 
-    // Pulsierender Glow
+    // Subtiles Pulsieren
     const t = performance.now() / 1000;
-    const pulse = 1 + Math.sin(t * 2 + tile.q + tile.r) * 0.04;
-    if (glowRef.current) {
-      glowRef.current.scale.set(pulse, pulse, pulse);
+    const pulse = 1 + Math.sin(t * 2 + tile.q * 0.7 + tile.r * 0.3) * 0.03;
+    if (meshRef.current) {
+      meshRef.current.scale.set(pulse, pulse, 1);
     }
   });
 
   if (!tile.discovered || !texture) return null;
 
-  const artifactSize = 0.7;
+  const artifactSize = 0.65;
 
   return (
     <group position={[cartPos.x, height + 0.025, cartPos.z]}>
       {/* Glow-Rand */}
-      <mesh ref={glowRef} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[artifactSize + 0.1, artifactSize + 0.1]} />
+      <mesh
+        ref={glowRef}
+        rotation={[-Math.PI / 2, 0, 0]}
+      >
+        <planeGeometry args={[artifactSize + 0.08, artifactSize + 0.08]} />
         <meshStandardMaterial
           color={[0.55, 0.36, 0.96]}
           emissive={[0.55, 0.36, 0.96]}
           emissiveIntensity={0.5}
           transparent
-          opacity={opacity * 0.5}
+          opacity={0.4}
           roughness={0.3}
           metalness={0.5}
           depthWrite={false}
@@ -115,7 +115,7 @@ export default function TileArtifact({ tile }) {
         <meshStandardMaterial
           map={texture}
           transparent
-          opacity={opacity}
+          opacity={0.85}
           roughness={0.5}
           metalness={0.1}
           depthWrite={true}

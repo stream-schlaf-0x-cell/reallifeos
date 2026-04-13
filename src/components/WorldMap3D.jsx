@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Text } from '@react-three/drei';
+import { OrbitControls } from '@react-three/drei';
 import { useWorldStore } from '../stores/useWorldStore';
 import { useBiomeColors } from '../hooks/useBiomeColors';
 import { useInfiniteMap } from '../hooks/useInfiniteMap';
@@ -8,22 +8,24 @@ import { ErrorBoundary } from './ErrorBoundary';
 import MapOrchestrator from './MapOrchestrator';
 import PlayerAvatar from './PlayerAvatar';
 import FollowCamera from './FollowCamera';
-import HexTile from './HexTile';
+import InstancedHexGrid from './InstancedHexGrid';
+import InstancedDecor from './InstancedDecor';
 import TileBillboard from './TileBillboard';
-import TileDecorator from './TileDecorator';
 import TileArtifact from './TileArtifact';
+import { AmbientDust, FloatingSpores } from './AtmosphericDetails';
 
 const UNCOVER_COST = 10;
 
 /**
- * WorldMap3D v2 – Vollständige 3D-Welt mit:
- * - PlayerAvatar (Low-Poly Monk)
- * - FollowCamera (lerp-basiert)
- * - TileDecorator (Landschafts-Objekte)
- * - TileArtifact (KI-Bilder als Rune-Planes)
- * - InfiniteMap (auto-expand)
- * - Bloom Post-Processing
- * - ContactShadows
+ * WorldMap3D v3 – AAA-Indie 3D-Welt:
+ *
+ * - InstancedMesh Rendering für alle Tiles (Performance)
+ * - Simplex Noise Terrain (organische Höhen)
+ * - PlayerAvatar mit Momentum-basierter Bewegung
+ * - FollowCamera mit Smooth Lerp
+ * - Bloom, TiltShift, GodRays Post-Processing
+ * - Infinite Map (auto-expand)
+ * - Atmospheric Particles (Dust, Spores)
  */
 export default function WorldMap3D() {
   const tiles = useWorldStore((s) => s.mapData.tiles);
@@ -34,7 +36,7 @@ export default function WorldMap3D() {
   const poiBonuses = useMemo(() => recalcPoiBonuses(), [recalcPoiBonuses]);
   const colors = useBiomeColors();
 
-  // Infinite Map Expansion
+  // Infinite Map
   useInfiniteMap(playerPos);
 
   const biomeName = typeof worldState?.currentBiome === 'object'
@@ -47,10 +49,8 @@ export default function WorldMap3D() {
   const generatingCount = tiles.filter((t) => t.generating).length;
   const bossTiles = tiles.filter((t) => t.mapBoss && !t.mapBoss.defeated);
 
-  // Stable click handlers (lesen State direkt)
-  const handleTileClick = useCallback((index) => {
-    const currentTiles = useWorldStore.getState().mapData.tiles;
-    const tile = currentTiles[index];
+  // Stable click handlers
+  const handleTileClick = useCallback((index, tile) => {
     if (tile && !tile.discovered && !tile.generating) {
       useWorldStore.getState().uncoverTile(index);
     }
@@ -65,12 +65,6 @@ export default function WorldMap3D() {
       }
     }
   }, []);
-
-  // Tiles mit Index
-  const tilesWithIndex = useMemo(
-    () => tiles.map((t, i) => ({ ...t, index: i })),
-    [tiles]
-  );
 
   return (
     <div
@@ -114,7 +108,7 @@ export default function WorldMap3D() {
               border: '1px solid rgba(59, 130, 246, 0.3)',
             }}>
               <span style={{ color: 'var(--resource-mana)' }} className="font-mono">
-                💎 +{poiBonuses.manaRegen} Mana/Quest
+                💎 +{poiBonuses.manaRegen}
               </span>
             </div>
           )}
@@ -124,7 +118,7 @@ export default function WorldMap3D() {
               border: '1px solid rgba(234, 179, 8, 0.3)',
             }}>
               <span style={{ color: 'var(--resource-gold)' }} className="font-mono">
-                🪙 +{poiBonuses.goldRegen} Gold/Quest
+                🪙 +{poiBonuses.goldRegen}
               </span>
             </div>
           )}
@@ -134,7 +128,7 @@ export default function WorldMap3D() {
               border: '1px solid rgba(16, 185, 129, 0.3)',
             }}>
               <span style={{ color: 'var(--resource-mp)' }} className="font-mono">
-                ⚡ +{poiBonuses.moveRegen} MP/Quest
+                ⚡ +{poiBonuses.moveRegen}
               </span>
             </div>
           )}
@@ -148,50 +142,44 @@ export default function WorldMap3D() {
       }}>
         <ErrorBoundary>
           <Canvas
-            camera={{ position: [0, 18, 18], fov: 45, near: 0.1, far: 100 }}
+            camera={{ position: [0, 18, 18], fov: 40, near: 0.1, far: 120 }}
             style={{ width: '100%', height: '100%' }}
             dpr={[1, 1.5]}
             shadows
           >
             <Suspense fallback={null}>
-              {/* Scene Orchestration */}
+              {/* Scene Orchestration: Licht, Schatten, Post-Processing */}
               <MapOrchestrator />
 
-              {/* Player Avatar */}
+              {/* Player Avatar mit Momentum */}
               <PlayerAvatar playerPos={playerPos} colors={colors} />
 
-              {/* Follow Camera */}
+              {/* Smooth Follow Camera */}
               <FollowCamera playerPos={playerPos} enabled />
 
-              {/* Boden-Grid */}
-              <gridHelper args={[80, 80, '#1e293b18', '#1e293b08']} position={[0, -3.1, 0]} />
+              {/* Instanced Hex Tiles – Performance */}
+              <InstancedHexGrid
+                tiles={tiles}
+                colors={colors}
+                onTileClick={handleTileClick}
+              />
 
-              {/* Hex Tiles */}
-              {tilesWithIndex.map((tile) => {
+              {/* Instanced Landschafts-Deko */}
+              <InstancedDecor tiles={tiles} colors={colors} />
+
+              {/* Per-Tile Billboards (3D-Text für POI, Boss) */}
+              {tiles.map((tile, i) => {
                 const isPlayerHere = playerPos.q === tile.q && playerPos.r === tile.r;
                 return (
-                  <React.Fragment key={tile.index}>
-                    {/* 3D Hexagon */}
-                    <HexTile
-                      tile={tile}
-                      colors={colors}
-                      isPlayerHere={isPlayerHere}
-                      onClick={handleTileClick}
-                    />
-
-                    {/* Billboard (Emoji, Boss, etc.) */}
+                  <React.Fragment key={`bb-${i}`}>
                     {(tile.discovered || tile.generating) && (
                       <TileBillboard
-                        tile={tile}
+                        tile={{ ...tile, index: i }}
                         colors={colors}
                         isPlayerHere={isPlayerHere}
                         onBossClick={handleBossClick}
                       />
                     )}
-
-                    {/* Landschafts-Deko */}
-                    <TileDecorator tile={tile} colors={colors} />
-
                     {/* KI-Bild als Artefakt */}
                     {tile.discovered && (
                       <TileArtifact tile={tile} />
@@ -200,17 +188,21 @@ export default function WorldMap3D() {
                 );
               })}
 
+              {/* Atmospheric Particles */}
+              <AmbientDust count={150} spread={35} />
+              <FloatingSpores count={60} spread={28} />
+
               {/* Kamera-Steuerung */}
               <OrbitControls
                 enableDamping
-                dampingFactor={0.06}
-                minDistance={6}
-                maxDistance={45}
+                dampingFactor={0.05}
+                minDistance={5}
+                maxDistance={50}
                 maxPolarAngle={Math.PI / 2.1}
-                minPolarAngle={Math.PI / 8}
-                rotateSpeed={0.4}
+                minPolarAngle={Math.PI / 10}
+                rotateSpeed={0.35}
                 zoomSpeed={0.8}
-                panSpeed={0.4}
+                panSpeed={0.35}
               />
             </Suspense>
           </Canvas>
@@ -226,7 +218,7 @@ export default function WorldMap3D() {
           </h3>
           <p className="text-[10px] md:text-xs" style={{ color: 'var(--text-muted)' }}>
             Links: Drehen • Rechts: Schwenken • Rad: Zoom.
-            Klicke auf unentdeckte Felder ({UNCOVER_COST} MP). 💀 Boss = klickbar.
+            Klicke auf unentdeckte Felder ({UNCOVER_COST} MP).
           </p>
           <div className="mt-2 flex flex-wrap gap-1">
             {Object.entries(POI_EMOJI).map(([type, emoji]) => (
