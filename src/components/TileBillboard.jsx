@@ -1,18 +1,14 @@
 import React, { useRef, useMemo, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
+import { Text } from '@react-three/drei';
 import { axialToCartesian, getTileHeight } from '../hooks/useHexGrid';
-import FallbackImage from './FallbackImage';
+import * as THREE from 'three';
 
 /**
- * TileBillboard – Zeigt POI-Emoji, Boss-Indikatoren und KI-Assets als Billboard
- * auf einem 3D-Hexagon. Nutzt FallbackImage für die 2D-KI-Bilder.
+ * TileBillboard – Zeigt POI-Emoji, Boss-Indikatoren als 3D-native Elemente.
  *
- * PROPS:
- * - tile: Tile-Daten (q, r, type, discovered, generating, mapBoss, name)
- * - colors: Farbtabelle
- * - isPlayerHere: boolean
- * - onBossClick: Callback(tileIndex)
+ * KEINE Html-Komponenten für Assets mehr – die Bilder werden als
+ * TileArtifact-Planes auf der Hex-Oberfläche gerendert.
  */
 export default function TileBillboard({ tile, colors, isPlayerHere, onBossClick }) {
   const cartPos = useMemo(() => axialToCartesian(tile.q, tile.r, 0), [tile.q, tile.r]);
@@ -25,12 +21,11 @@ export default function TileBillboard({ tile, colors, isPlayerHere, onBossClick 
 
   return (
     <group position={[cartPos.x, 0, cartPos.z]}>
-      {/* POI-Emoji als Text-Label */}
       {tile.discovered && (
         <>
           {/* Boss indicator */}
           {hasBoss && (
-            <BossBillboard
+            <BossIndicator
               tile={tile}
               height={height}
               onBossClick={onBossClick}
@@ -39,215 +34,201 @@ export default function TileBillboard({ tile, colors, isPlayerHere, onBossClick 
 
           {/* Defeated boss marker */}
           {bossDefeated && (
-            <Html position={[0, height + 1.8, 0]} center distanceFactor={12}>
-              <div
-                style={{
-                  fontSize: '12px',
-                  opacity: 0.5,
-                  pointerEvents: 'none',
-                  textShadow: '0 0 4px rgba(16, 185, 129, 0.5)',
-                }}
-              >
-                ✅
-              </div>
-            </Html>
+            <Text
+              position={[0, height + 1.5, 0]}
+              fontSize={0.15}
+              color="#10b981"
+              anchorX="center"
+              anchorY="middle"
+              outlineWidth={0.02}
+              outlineColor="#000000"
+            >
+              ✓
+            </Text>
           )}
 
-          {/* POI Emoji Label */}
-          <Html position={[0, hasBoss ? height + 1.2 : height + 0.8, 0]} center distanceFactor={12}>
-            <div
-              style={{
-                fontSize: '18px',
-                filter: 'drop-shadow(0 0 6px rgba(139, 92, 246, 0.4))',
-                pointerEvents: 'none',
-                userSelect: 'none',
-              }}
-            >
-              {POI_EMOJI[tile.type] || '❓'}
-            </div>
-          </Html>
+          {/* POI Emoji als 3D-Text */}
+          <POIEmoji
+            tile={tile}
+            height={height}
+            hasBoss={hasBoss}
+            colors={colors}
+          />
 
-          {/* POI Typ-Label */}
-          <Html position={[0, hasBoss ? height + 0.6 : height + 0.3, 0]} center distanceFactor={12}>
-            <div
-              style={{
-                fontSize: '8px',
-                fontWeight: 'bold',
-                color: colors[tile.type] || colors.unknown,
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                whiteSpace: 'nowrap',
-                pointerEvents: 'none',
-                textShadow: `0 0 8px ${colors[tile.type] || colors.unknown}40`,
-              }}
-            >
-              {getPoiLabel(tile.type)}
-            </div>
-          </Html>
-
-          {/* Koordinaten */}
-          <Html position={[0, height - 0.3, 0]} center distanceFactor={12}>
-            <div
-              style={{
-                fontSize: '7px',
-                color: 'rgba(148, 163, 184, 0.4)',
-                pointerEvents: 'none',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {tile.q},{tile.r}
-            </div>
-          </Html>
-
-          {/* Player indicator */}
+          {/* Player indicator (kleiner Ring auf dem Boden) */}
           {isPlayerHere && (
-            <Html position={[0, height + 0.05, 0]} center distanceFactor={12}>
-              <div
-                style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  backgroundColor: colors.playerRing,
-                  boxShadow: `0 0 12px ${colors.playerRing}, 0 0 24px ${colors.playerRing}40`,
-                  animation: 'pulse 2s ease-in-out infinite',
-                }}
+            <mesh position={[0, height + 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+              <ringGeometry args={[0.3, 0.4, 16]} />
+              <meshStandardMaterial
+                color={colors.playerRing}
+                emissive={colors.playerRing}
+                emissiveIntensity={0.8}
+                transparent
+                opacity={0.6}
+                side={THREE.DoubleSide}
               />
-            </Html>
+            </mesh>
           )}
-
-          {/* KI-Asset Billboard (FallbackImage) */}
-          <AssetBillboard tile={tile} height={height} />
         </>
       )}
 
       {/* Generating state */}
       {tile.generating && (
-        <Html position={[0, 0.5, 0]} center distanceFactor={12}>
-          <div
-            style={{
-              fontSize: '12px',
-              color: 'rgba(139, 92, 246, 0.6)',
-              animation: 'pulse 1.5s ease-in-out infinite',
-              pointerEvents: 'none',
-            }}
-          >
-            ⚙️
-          </div>
-        </Html>
+        <GeneratingIndicator position={[0, height + 0.5, 0]} />
       )}
     </group>
   );
 }
 
 /**
- * Boss-Billboard – Skull mit Klick-Handler als 3D-Billboard.
+ * POI-Emoji als rotierender 3D-Text.
  */
-function BossBillboard({ tile, height, onBossClick }) {
-  const meshRef = useRef();
-  const [hovered, setHovered] = useState(false);
+function POIEmoji({ tile, height, hasBoss, colors }) {
+  const groupRef = useRef();
+  const tileColor = useMemo(
+    () => colors[tile.type] || colors.unknown,
+    [tile.type, colors]
+  );
 
   useFrame((_, delta) => {
-    if (!meshRef.current) return;
-    meshRef.current.rotation.y += delta * 1.5;
+    if (!groupRef.current) return;
+    groupRef.current.rotation.y += delta * 0.5;
   });
 
   return (
-    <group position={[0, height + 1.5, 0]}>
-      <Html center distanceFactor={10}>
-        <div
-          onClick={(e) => {
-            e.stopPropagation();
-            if (onBossClick && tile.mapBoss && !tile.mapBoss.defeated) {
-              onBossClick(tile.index);
-            }
-          }}
-          style={{
-            cursor: 'pointer',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '2px',
-          }}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
-        >
-          {/* Skull background circle */}
-          <div
-            style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '50%',
-              backgroundColor: 'rgba(249, 115, 22, 0.3)',
-              border: `2px solid ${hovered ? '#ef4444' : '#f97316'}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: hovered
-                ? '0 0 16px rgba(239, 68, 68, 0.6)'
-                : '0 0 8px rgba(249, 115, 22, 0.4)',
-              animation: 'pulse 2s ease-in-out infinite',
-              transition: 'box-shadow 0.2s, border-color 0.2s',
-            }}
-          >
-            <span style={{ fontSize: '14px' }}>💀</span>
-          </div>
-          {/* Boss name */}
-          <div
-            style={{
-              fontSize: '7px',
-              color: '#f97316',
-              fontWeight: 'bold',
-              whiteSpace: 'nowrap',
-              maxWidth: '80px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              textAlign: 'center',
-              textShadow: '0 0 4px rgba(249, 115, 22, 0.5)',
-            }}
-          >
-            {tile.mapBoss?.name}
-          </div>
-        </div>
-      </Html>
+    <group ref={groupRef} position={[0, hasBoss ? height + 1.0 : height + 0.6, 0]}>
+      {/* Glow-Hintergrund */}
+      <mesh>
+        <sphereGeometry args={[0.25, 8, 6]} />
+        <meshStandardMaterial
+          color={tileColor}
+          emissive={tileColor}
+          emissiveIntensity={0.3}
+          transparent
+          opacity={0.15}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Emoji als Text-Canvas */}
+      <Text
+        position={[0, 0, 0]}
+        fontSize={0.3}
+        anchorX="center"
+        anchorY="middle"
+      >
+        {POI_EMOJI[tile.type] || '❓'}
+      </Text>
     </group>
   );
 }
 
 /**
- * Asset-Billboard – Zeigt das KI-generierte Bild eines Tiles als vertikalen
- * "Papieraufsteller" der sich zur Kamera dreht.
+ * Boss-Skull als 3D-Objekt mit Klick-Handler.
  */
-function AssetBillboard({ tile, height }) {
-  const assetSrc = tile.discovered ? `/data/assets/${tile.type}_${tile.q}_${tile.r}.png` : null;
-  if (!assetSrc) return null;
+function BossIndicator({ tile, height, onBossClick }) {
+  const groupRef = useRef();
+  const [hovered, setHovered] = useState(false);
+
+  useFrame((_, delta) => {
+    if (!groupRef.current) return;
+    groupRef.current.rotation.y += delta * 1.2;
+    // Pulsieren
+    const s = 1 + Math.sin(performance.now() / 500) * 0.1;
+    groupRef.current.scale.setScalar(s);
+  });
+
+  const skullColor = hovered ? [0.94, 0.27, 0.27] : [0.98, 0.45, 0.13];
 
   return (
-    <group position={[0, height + 2.2, 0]}>
-      <Html center distanceFactor={10} transform sprite>
-        <div
-          style={{
-            width: '64px',
-            height: '64px',
-            borderRadius: '8px',
-            overflow: 'hidden',
-            border: '1px solid rgba(139, 92, 246, 0.3)',
-            boxShadow: '0 0 12px rgba(139, 92, 246, 0.2)',
-          }}
-        >
-          <FallbackImage
-            src={assetSrc}
-            alt={`${tile.name || tile.type} (${tile.q},${tile.r})`}
-            fallbackIcon={POI_EMOJI[tile.type] || '🎮'}
-            width="64px"
-            height="64px"
-          />
-        </div>
-      </Html>
+    <group
+      ref={groupRef}
+      position={[0, height + 1.3, 0]}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (onBossClick && tile.mapBoss && !tile.mapBoss.defeated) {
+          onBossClick(tile.index);
+        }
+      }}
+      onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
+      onPointerOut={() => setHovered(false)}
+      style={{ cursor: 'pointer' }}
+    >
+      {/* Skull als Dodekaeder */}
+      <mesh castShadow>
+        <dodecahedronGeometry args={[0.22, 0]} />
+        <meshStandardMaterial
+          color={skullColor}
+          emissive={skullColor}
+          emissiveIntensity={hovered ? 0.8 : 0.3}
+          roughness={0.3}
+          metalness={0.6}
+        />
+      </mesh>
+
+      {/* Ring darum */}
+      <mesh>
+        <torusGeometry args={[0.3, 0.03, 8, 16]} />
+        <meshStandardMaterial
+          color={skullColor}
+          emissive={skullColor}
+          emissiveIntensity={0.5}
+          transparent
+          opacity={0.7}
+        />
+      </mesh>
+
+      {/* Boss name als Text */}
+      <Text
+        position={[0, -0.4, 0]}
+        fontSize={0.12}
+        color="#f97316"
+        anchorX="center"
+        anchorY="middle"
+        outlineWidth={0.01}
+        outlineColor="#000000"
+      >
+        {tile.mapBoss?.name || 'Boss'}
+      </Text>
     </group>
   );
 }
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+/**
+ * Generierend-Indikator – pulsierender Zahn.
+ */
+function GeneratingIndicator({ position }) {
+  const ref = useRef();
+
+  useFrame((_, delta) => {
+    if (!ref.current) return;
+    ref.current.rotation.y += delta * 2;
+  });
+
+  return (
+    <group position={position}>
+      <mesh ref={ref}>
+        <torusGeometry args={[0.2, 0.05, 6, 8]} />
+        <meshStandardMaterial
+          color={[0.55, 0.36, 0.96]}
+          emissive={[0.55, 0.36, 0.96]}
+          emissiveIntensity={0.5}
+          transparent
+          opacity={0.6}
+        />
+      </mesh>
+      <Text
+        position={[0, -0.3, 0]}
+        fontSize={0.1}
+        color="rgba(139, 92, 246, 0.5)"
+        anchorX="center"
+        anchorY="middle"
+      >
+        KI generiert...
+      </Text>
+    </group>
+  );
+}
 
 const POI_EMOJI = {
   monastery: '🏯',
@@ -259,17 +240,3 @@ const POI_EMOJI = {
   nexus: '🌀',
   unknown: '❓',
 };
-
-const POI_LABELS = {
-  monastery: 'Kloster',
-  academy: 'Akademie',
-  gym: 'Trainingslager',
-  studio: 'Studio',
-  server: 'Server-Farm',
-  wilds: 'Wildnis',
-  nexus: 'Nexus',
-};
-
-function getPoiLabel(type) {
-  return POI_LABELS[type] || type;
-}

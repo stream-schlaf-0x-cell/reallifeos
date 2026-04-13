@@ -368,6 +368,103 @@ export const useWorldStore = create(
         }));
       },
 
+      /**
+       * Fügt einen neuen Hex-Ring an die bestehende Map an (Infinite Map).
+       * Wird automatisch aufgerufen wenn sich der Spieler dem Kartenrand nähert.
+       */
+      addRingToMap: (ringRadius) => {
+        // Hex-Ring-Koordinaten generieren (gleiche Logik wie mapGenerator)
+        const newHexes = [];
+        if (ringRadius === 0) {
+          newHexes.push({ q: 0, r: 0 });
+        } else {
+          let q = 0;
+          let r = -ringRadius;
+          const directions = [
+            { dq: 1, dr: 0 }, { dq: 0, dr: 1 }, { dq: -1, dr: 1 },
+            { dq: -1, dr: 0 }, { dq: 0, dr: -1 }, { dq: 1, dr: -1 },
+          ];
+          for (let i = 0; i < 6; i++) {
+            for (let j = 0; j < ringRadius; j++) {
+              newHexes.push({ q, r });
+              q += directions[i].dq;
+              r += directions[i].dr;
+            }
+          }
+        }
+
+        // Prüfe welche Tiles bereits existieren
+        const existingTiles = get().mapData.tiles;
+        const existingSet = new Set(existingTiles.map(t => `${t.q},${t.r}`));
+
+        // POI-Typ gewichtet wählen
+        const POI_TYPES = [
+          { type: 'nexus', weight: 3 }, { type: 'monastery', weight: 15 },
+          { type: 'academy', weight: 15 }, { type: 'gym', weight: 12 },
+          { type: 'studio', weight: 10 }, { type: 'server', weight: 10 },
+          { type: 'wilds', weight: 35 },
+        ];
+        const totalWeight = POI_TYPES.reduce((s, p) => s + p.weight, 0);
+
+        const newTiles = newHexes
+          .filter(h => !existingSet.has(`${h.q},${h.r}`))
+          .map((coord) => {
+            // Gewichtete Zufallsauswahl
+            let rand = Math.random() * totalWeight;
+            let tileType = 'wilds';
+            for (const poi of POI_TYPES) {
+              rand -= poi.weight;
+              if (rand <= 0) { tileType = poi.type; break; }
+            }
+
+            const POI_NAMES = {
+              nexus: ['Kristalliner Nexus', 'Quelle der Klarheit'],
+              monastery: ['Tempel der Stille', 'Kloster des Erwachens', 'Halle der Achtsamkeit'],
+              academy: ['Sokratische Akademie', 'Halle der Dialektik', 'Athenäum der Ethik'],
+              gym: ['Eisenhalle', 'Arena der Disziplin', 'Tempel der Physis'],
+              studio: ['Klanglabor', 'Studio der Resonanz', 'Frequenz-Schmiede'],
+              server: ['Docker Core', 'Server-Farm Alpha', 'Node der Automation'],
+              wilds: ['Unbekanntes Gebiet', 'Nebel der Täuschung', 'Dschungel der Ablenkung',
+                       'Schlucht der Prokrastination', 'Sumpf der Lethargie'],
+            };
+            const names = POI_NAMES[tileType] || POI_NAMES.wilds;
+
+            return {
+              q: coord.q,
+              r: coord.r,
+              type: tileType,
+              name: names[Math.floor(Math.random() * names.length)],
+              discovered: false,
+              generating: false,
+              mapBoss: tileType === 'wilds' && Math.random() < 0.15
+                ? {
+                    id: `map_boss_${Date.now()}_${coord.q}_${coord.r}`,
+                    name: 'Wächter der Wildnis',
+                    type: 'Wildnis',
+                    maxHp: 100 + ringRadius * 20,
+                    currentHp: 100 + ringRadius * 20,
+                    defeated: false,
+                  }
+                : null,
+            };
+          });
+
+        if (newTiles.length === 0) return;
+
+        set((state) => ({
+          mapData: {
+            ...state.mapData,
+            tiles: [...existingTiles, ...newTiles],
+          },
+          worldState: {
+            ...state.worldState,
+            totalTiles: state.mapData.tiles.length + newTiles.length,
+          },
+        }));
+
+        console.log(`[InfiniteMap] Added ${newTiles.length} tiles for ring ${ringRadius}`);
+      },
+
       // ═══════════════════════════════════ DEV TOOLS ═══════════════════════════════════
 
       /**
