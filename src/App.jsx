@@ -5,7 +5,7 @@ import Layout from "./components/Layout";
 import SkillTree from "./components/SkillTree";
 import Quests from "./components/Quests";
 import BattleArena from "./components/BattleArena";
-import WorldMap from "./components/WorldMap";
+import WorldMap3D from "./components/WorldMap3D";
 import ArchitectTerminal from "./components/ArchitectTerminal";
 import DevToolsPanel from "./components/DevToolsPanel";
 import ActivityLogView from "./components/ActivityLogView";
@@ -94,12 +94,7 @@ function AppContent() {
               />
             )}
             {activeTab === "map" && (
-              <WorldMap
-                gameState={gameState}
-                uncoverTile={uncoverTile}
-                getPoiInfo={getPoiInfo}
-                defeatMapBoss={defeatMapBoss}
-              />
+              <WorldMap3D />
             )}
             {activeTab === "architect" && (
               <ArchitectTerminal />
